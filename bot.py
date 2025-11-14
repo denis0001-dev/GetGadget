@@ -187,7 +187,7 @@ async def cards_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def show_cards(update: Update, context: ContextTypes.DEFAULT_TYPE, query=None):
-    """Show user's cards."""
+    """Show user's cards grouped by rarity."""
     if query:
         user_id = query.from_user.id
         message_obj = query.message
@@ -208,67 +208,33 @@ async def show_cards(update: Update, context: ContextTypes.DEFAULT_TYPE, query=N
             await message_obj.reply_text(message, reply_markup=reply_markup)
         return
     
-    # Group cards by category
-    cards_by_category = {}
-    built_pcs = []
-    
+    # Group cards by rarity (including PCs, but excluding parts that are in a PC)
+    cards_by_rarity = {}
     for card in cards:
-        if card["category"] == "PC":
-            built_pcs.append(card)
-        else:
-            category = card["category"]
-            if category not in cards_by_category:
-                cards_by_category[category] = []
-            cards_by_category[category].append(card)
+        # Skip parts that are in a PC (they're only visible when viewing the PC)
+        if card.get("in_pc") is not None:
+            continue
+        rarity = card["rarity"]
+        if rarity not in cards_by_rarity:
+            cards_by_rarity[rarity] = []
+        cards_by_rarity[rarity].append(card)
     
-    # Build message
-    message_parts = ["📚 <b>Твоя Коллекция Карточек</b> 🎴\n"]
+    # Simple title message
+    message = "📚 <b>Твоя Коллекция Карточек</b> 🎴"
     
-    # Show built PCs first
-    if built_pcs:
-        message_parts.append("\n🖥️ <b>Собранные ПК:</b>")
-        for pc in built_pcs:
-            components = pc.get("components", [])
-            specs = pc.get("specs", {})
-            rarity_emoji = gadgets.get_rarity_emoji(pc["rarity"])
-            rarity_ru = RARITY_NAMES.get(pc['rarity'], pc['rarity'])
-            message_parts.append(
-                f"\n• {rarity_emoji} <b>{pc['gadget_name']}</b> ({rarity_ru})\n"
-                f"  Цена: {pc['purchase_price']} монет 💰\n"
-                f"  Компонентов: {len(components)} шт"
-            )
-    
-    # Show cards by category
-    for category, category_cards in cards_by_category.items():
-        category_ru = CATEGORY_NAMES.get(category, category)
-        message_parts.append(f"\n<b>{category_ru}:</b>")
-        for card in category_cards:
-            rarity_emoji = gadgets.get_rarity_emoji(card["rarity"])
-            rarity_ru = RARITY_NAMES.get(card['rarity'], card['rarity'])
-            in_pc_indicator = " 🔗" if card.get("in_pc") else ""
-            message_parts.append(
-                f"• {rarity_emoji} {card['gadget_name']} ({rarity_ru}) - {card['purchase_price']} монет{in_pc_indicator}"
-            )
-    
-    message = "\n".join(message_parts)
-    
-    # Create keyboard with buttons to view each card
+    # Create keyboard with buttons for each rarity
     keyboard = []
-    row = []
-    for i, card in enumerate(cards):
-        if card.get("in_pc") is None:  # Only show cards not in PC
-            button_text = f"👀 {card['gadget_name'][:12]}"
-            if len(button_text) > 20:
-                button_text = button_text[:17] + "..."
-            row.append(InlineKeyboardButton(button_text, callback_data=f"view_card_{card['card_id']}"))
-            if len(row) == 2:
-                keyboard.append(row)
-                row = []
+    # Order rarities from lowest to highest
+    rarity_order = ["Trash", "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic"]
     
-    if row:
-        keyboard.append(row)
+    for rarity in rarity_order:
+        if rarity in cards_by_rarity:
+            rarity_emoji = gadgets.get_rarity_emoji(rarity)
+            rarity_ru = RARITY_NAMES.get(rarity, rarity)
+            count = len(cards_by_rarity[rarity])
+            button_text = f"{rarity_emoji} {rarity_ru} ({count})"
+            keyboard.append([InlineKeyboardButton(button_text, callback_data=f"rarity_{rarity}")])
     
-    keyboard.append([InlineKeyboardButton("Собранные ПК 🖥️", callback_data="view_pcs")])
     keyboard.append([InlineKeyboardButton("Собрать ПК 🛠️", callback_data="build_pc")])
     keyboard.append([InlineKeyboardButton("Назад ↩️", callback_data="back_to_start")])
     
@@ -278,6 +244,46 @@ async def show_cards(update: Update, context: ContextTypes.DEFAULT_TYPE, query=N
         await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")
     else:
         await message_obj.reply_text(message, reply_markup=reply_markup, parse_mode="HTML")
+
+
+async def show_rarity_cards(update: Update, context: ContextTypes.DEFAULT_TYPE, query, rarity):
+    """Show cards of a specific rarity."""
+    user_id = query.from_user.id
+    cards = database.get_user_cards(user_id)
+    
+    # Filter cards by rarity, but exclude parts that are in a PC
+    rarity_cards = [card for card in cards if card["rarity"] == rarity and card.get("in_pc") is None]
+    
+    if not rarity_cards:
+        await query.answer("Нет карточек этой редкости! 😢", show_alert=True)
+        return
+    
+    rarity_emoji = gadgets.get_rarity_emoji(rarity)
+    rarity_ru = RARITY_NAMES.get(rarity, rarity)
+    
+    # Simple title message only
+    message = f"{rarity_emoji} <b>{rarity_ru}</b> 🎴"
+    
+    # Create keyboard with buttons for all available cards (not in PC)
+    keyboard = []
+    row = []
+    for card in rarity_cards:
+        card_emoji = "🖥️" if card["category"] == "PC" else rarity_emoji
+        button_text = f"{card_emoji} {card['gadget_name'][:15]}"
+        if len(button_text) > 20:
+            button_text = button_text[:17] + "..."
+        row.append(InlineKeyboardButton(button_text, callback_data=f"view_card_{card['card_id']}"))
+        if len(row) == 2:
+            keyboard.append(row)
+            row = []
+    
+    if row:
+        keyboard.append(row)
+    
+    keyboard.append([InlineKeyboardButton("Назад ↩️", callback_data="view_cards")])
+    
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")
 
 
 async def build_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -544,6 +550,10 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     elif data == "view_cards":
         await show_cards(update, context, query)
+    
+    elif data.startswith("rarity_"):
+        rarity = data.split("_", 1)[1]
+        await show_rarity_cards(update, context, query, rarity)
     
     elif data == "profile":
         user = database.get_user(user_id)
