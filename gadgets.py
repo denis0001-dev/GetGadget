@@ -27,27 +27,27 @@ GADGETS = [
     {"name": "Samsung Galaxy S5", "category": CATEGORY_PHONE, "price": 40, "rarity": RARITY_TRASH},
     {"name": "iPhone 7", "category": CATEGORY_PHONE, "price": 60, "rarity": RARITY_TRASH},
     
-    {"name": "iPhone 11", "category": CATEGORY_PHONE, "price": 300, "rarity": RARITY_COMMON},
+    {"name": "iPhone 11", "category": CATEGORY_PHONE, "price": 300, "rarity": RARITY_TRASH},
     {"name": "Samsung Galaxy A54", "category": CATEGORY_PHONE, "price": 250, "rarity": RARITY_COMMON},
-    {"name": "iPhone XR", "category": CATEGORY_PHONE, "price": 280, "rarity": RARITY_COMMON},
+    {"name": "iPhone XR", "category": CATEGORY_PHONE, "price": 280, "rarity": RARITY_TRASH},
     
-    {"name": "iPhone 12", "category": CATEGORY_PHONE, "price": 450, "rarity": RARITY_UNCOMMON},
+    {"name": "iPhone 12", "category": CATEGORY_PHONE, "price": 450, "rarity": RARITY_TRASH},
     {"name": "Google Pixel 6", "category": CATEGORY_PHONE, "price": 400, "rarity": RARITY_UNCOMMON},
     {"name": "Samsung Galaxy S20", "category": CATEGORY_PHONE, "price": 420, "rarity": RARITY_UNCOMMON},
     
-    {"name": "iPhone 14", "category": CATEGORY_PHONE, "price": 650, "rarity": RARITY_RARE},
+    {"name": "iPhone 14", "category": CATEGORY_PHONE, "price": 650, "rarity": RARITY_TRASH},
     {"name": "Google Pixel 7", "category": CATEGORY_PHONE, "price": 550, "rarity": RARITY_RARE},
     {"name": "Samsung Galaxy S22", "category": CATEGORY_PHONE, "price": 600, "rarity": RARITY_RARE},
     
-    {"name": "iPhone 15", "category": CATEGORY_PHONE, "price": 850, "rarity": RARITY_EPIC},
+    {"name": "iPhone 15", "category": CATEGORY_PHONE, "price": 850, "rarity": RARITY_TRASH},
     {"name": "Samsung Galaxy S23", "category": CATEGORY_PHONE, "price": 800, "rarity": RARITY_EPIC},
     {"name": "Google Pixel 8", "category": CATEGORY_PHONE, "price": 700, "rarity": RARITY_EPIC},
     
-    {"name": "iPhone 16 Pro Max", "category": CATEGORY_PHONE, "price": 1200, "rarity": RARITY_LEGENDARY},
+    {"name": "iPhone 16 Pro Max", "category": CATEGORY_PHONE, "price": 1200, "rarity": RARITY_TRASH},
     {"name": "Samsung Galaxy S24 Ultra", "category": CATEGORY_PHONE, "price": 1100, "rarity": RARITY_LEGENDARY},
     {"name": "OnePlus 12", "category": CATEGORY_PHONE, "price": 900, "rarity": RARITY_LEGENDARY},
     
-    {"name": "iPhone 17 Pro Max", "category": CATEGORY_PHONE, "price": 1500, "rarity": RARITY_MYTHIC},
+    {"name": "iPhone 17 Pro Max", "category": CATEGORY_PHONE, "price": 1500, "rarity": RARITY_TRASH},
     {"name": "Samsung Galaxy S25 Ultra", "category": CATEGORY_PHONE, "price": 1400, "rarity": RARITY_MYTHIC},
     
     # Tablets
@@ -174,8 +174,38 @@ GADGETS = [
 
 
 def get_random_gadget():
-    """Get a random gadget from the catalog."""
+    """Get a random gadget from the catalog with weighted rarity probabilities."""
     import random
+    
+    # Rarity probabilities (must add up to 100%)
+    RARITY_PROBABILITIES = {
+        RARITY_TRASH: 30,      # 30%
+        RARITY_COMMON: 25,     # 25%
+        RARITY_UNCOMMON: 20,   # 20%
+        RARITY_RARE: 15,       # 15%
+        RARITY_EPIC: 7,        # 7%
+        RARITY_LEGENDARY: 2,   # 2%
+        RARITY_MYTHIC: 1,      # 1%
+    }
+    
+    # Group gadgets by rarity
+    gadgets_by_rarity = {}
+    for gadget in GADGETS:
+        rarity = gadget["rarity"]
+        if rarity not in gadgets_by_rarity:
+            gadgets_by_rarity[rarity] = []
+        gadgets_by_rarity[rarity].append(gadget)
+    
+    # Select rarity based on probabilities
+    rarities = list(RARITY_PROBABILITIES.keys())
+    weights = [RARITY_PROBABILITIES[r] for r in rarities]
+    selected_rarity = random.choices(rarities, weights=weights, k=1)[0]
+    
+    # Select random gadget from the selected rarity
+    if selected_rarity in gadgets_by_rarity and gadgets_by_rarity[selected_rarity]:
+        return random.choice(gadgets_by_rarity[selected_rarity])
+    
+    # Fallback to completely random if something goes wrong
     return random.choice(GADGETS)
 
 
