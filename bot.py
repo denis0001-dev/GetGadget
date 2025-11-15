@@ -235,9 +235,6 @@ async def show_cards(update: Update, context: ContextTypes.DEFAULT_TYPE, query=N
             button_text = f"{rarity_emoji} {rarity_ru} ({count})"
             keyboard.append([InlineKeyboardButton(button_text, callback_data=f"rarity_{rarity}")])
     
-    keyboard.append([InlineKeyboardButton("Собрать ПК 🛠️", callback_data="build_pc")])
-    keyboard.append([InlineKeyboardButton("Назад ↩️", callback_data="back_to_start")])
-    
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     if query:
@@ -401,11 +398,6 @@ async def show_build_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
     keyboard.append([InlineKeyboardButton("Назад ↩️", callback_data=f"build_cpu_{selected_gpu}")])
     reply_markup = InlineKeyboardMarkup(keyboard)
     await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")
-
-
-async def pc_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle /pc command."""
-    await show_pcs(update, context)
 
 
 async def show_pc_details(user_id: int, pc_card: dict, query, back_callback: str = "view_pcs", show_back: bool = True, title: str = None):
@@ -581,7 +573,6 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "<b>/cards</b> - Посмотреть свою коллекцию карточек\n"
         "<b>/profile</b> - Посмотреть профиль и статистику\n"
         "<b>/build</b> - Собрать кастомный ПК из деталей\n"
-        "<b>/pc</b> - Посмотреть и управлять собранными ПК\n"
         "<b>/help</b> - Показать это сообщение помощи\n\n"
         "<b>💰 Система Монет:</b>\n"
         "• Начинаешь с 0 монет (но это не проблема!)\n"
@@ -690,7 +681,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "<b>/cards</b> - Посмотреть свою коллекцию карточек\n"
             "<b>/profile</b> - Посмотреть профиль и статистику\n"
             "<b>/build</b> - Собрать кастомный ПК из деталей\n"
-            "<b>/pc</b> - Посмотреть и управлять собранными ПК\n"
             "<b>/help</b> - Показать это сообщение помощи\n\n"
             "<b>💰 Система Монет:</b>\n"
             "• Начинаешь с 0 монет (но это не проблема!)\n"
@@ -1056,7 +1046,6 @@ def main():
     application.add_handler(CommandHandler("cards", cards_command))
     application.add_handler(CommandHandler("profile", profile_command))
     application.add_handler(CommandHandler("build", build_command))
-    application.add_handler(CommandHandler("pc", pc_command))
     application.add_handler(CommandHandler("help", help_command))
     
     # Add callback query handler
