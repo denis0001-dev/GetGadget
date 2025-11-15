@@ -3,6 +3,7 @@ Telegram Gadget Card Bot
 Main entry point for the bot application.
 """
 
+import asyncio
 import threading
 from telegram import Update
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler
@@ -66,8 +67,17 @@ def main():
     
     application.post_init = post_init
     
-    # Run bot
+    # Run bot with proper event loop for Python 3.12+
     print("Bot is running...")
+    # Python 3.12+ compatibility: ensure event loop policy is set
+    try:
+        # Try to get or create event loop
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        # No event loop exists, create a new one
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 

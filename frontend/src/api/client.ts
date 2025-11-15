@@ -4,7 +4,7 @@
 
 import { getInitData, showAlert } from '../telegram';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://95.165.0.162:8400';
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.getgadgets.toolbox-io.ru';
 
 interface RequestOptions {
     method?: 'GET' | 'POST' | 'PUT' | 'DELETE';

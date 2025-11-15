@@ -6,6 +6,7 @@ export default defineConfig({
     plugins: [react()],
     server: {
         port: 8401,
-        host: '0.0.0.0'
+        host: '0.0.0.0',
+        allowedHosts: ['getgadgets.toolbox-io.ru']
     }
 })

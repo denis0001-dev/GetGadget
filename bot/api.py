@@ -25,7 +25,7 @@ app = FastAPI(title="GetGadget API")
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Will be restricted to GitHub Pages URL later
+    allow_origins=[config.FRONTEND_URL, "http://localhost:5173"],  # Allow frontend URL and local dev
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
