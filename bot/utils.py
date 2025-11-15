@@ -7,7 +7,7 @@ import database
 
 
 # Image paths
-IMAGES_DIR = "images"
+IMAGES_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "images")
 IMAGE_PATHS = {
     "gadgets": os.path.join(IMAGES_DIR, "gadgets.png"),
     "empty_collection": os.path.join(IMAGES_DIR, "empty-collection.png"),

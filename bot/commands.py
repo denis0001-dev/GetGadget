@@ -4,14 +4,14 @@ Command handlers for the Telegram Gadget Card Bot.
 
 import os
 import time
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import ContextTypes
 
 import gadgets
 import database
 import messages
 import utils
-from config import RARITY_NAMES, RARITY_ORDER, GADGET_TYPE_GROUPS, GADGET_TYPE_ORDER
+from config import RARITY_NAMES, RARITY_ORDER, GADGET_TYPE_GROUPS, GADGET_TYPE_ORDER, FRONTEND_URL
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -30,6 +30,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = messages.get_start_message(coins)
     
     keyboard = [
+        [InlineKeyboardButton("📱 Открыть Приложение", web_app=WebAppInfo(url=FRONTEND_URL))],
         [InlineKeyboardButton("Получить Карточку 🎴", callback_data="get_card")],
         [InlineKeyboardButton("Мои Гаджеты 📚", callback_data="view_gadgets")],
         [InlineKeyboardButton("Профиль 👤", callback_data="profile")],
@@ -308,6 +309,113 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def build_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /build command."""
     await show_build_menu(update, context)
+
+
+async def pay_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /pay command. Format: /pay @username amount or /pay username amount"""
+    user_id = update.effective_user.id
+    sender = database.get_user(user_id)
+    
+    # Parse arguments
+    if not context.args or len(context.args) < 2:
+        await update.message.reply_text(
+            "❌ <b>Неверный формат команды!</b>\n\n"
+            "Использование: <code>/pay @username количество</code>\n"
+            "Пример: <code>/pay @denis0001-dev 100</code>",
+            parse_mode="HTML"
+        )
+        return
+    
+    # Get username and amount
+    username_arg = context.args[0]
+    amount_str = context.args[1]
+    
+    # Remove @ if present
+    if username_arg.startswith("@"):
+        username = username_arg[1:]
+    else:
+        username = username_arg
+    
+    # Parse amount
+    try:
+        amount = int(amount_str)
+    except ValueError:
+        await update.message.reply_text(
+            "❌ <b>Неверная сумма!</b>\n\n"
+            "Сумма должна быть числом.\n"
+            "Пример: <code>/pay @username 100</code>",
+            parse_mode="HTML"
+        )
+        return
+    
+    # Validate amount
+    if amount <= 0:
+        await update.message.reply_text(
+            "❌ <b>Сумма должна быть положительной!</b>",
+            parse_mode="HTML"
+        )
+        return
+    
+    # Check if trying to pay yourself
+    if update.effective_user.username and update.effective_user.username.lower() == username.lower():
+        await update.message.reply_text(
+            "❌ <b>Нельзя перевести монеты самому себе!</b>",
+            parse_mode="HTML"
+        )
+        return
+    
+    # Check sender's balance
+    if sender["coins"] < amount:
+        await update.message.reply_text(
+            f"❌ <b>Недостаточно монет!</b>\n\n"
+            f"У тебя: {sender['coins']} монет 💰\n"
+            f"Требуется: {amount} монет",
+            parse_mode="HTML"
+        )
+        return
+    
+    # Try to get recipient user_id by username
+    # Note: Telegram Bot API doesn't have a direct way to get user_id from username
+    # We'll need to use get_chat() which works if the user has interacted with the bot
+    try:
+        recipient_chat = await context.bot.get_chat(f"@{username}")
+        recipient_user_id = recipient_chat.id
+        recipient_name = recipient_chat.first_name or username
+    except Exception as e:
+        # If get_chat fails, we can't proceed
+        await update.message.reply_text(
+            f"❌ <b>Пользователь не найден!</b>\n\n"
+            f"Не удалось найти пользователя <code>@{username}</code>.\n"
+            f"Убедись, что пользователь уже взаимодействовал с ботом.",
+            parse_mode="HTML"
+        )
+        return
+    
+    # Check if trying to pay yourself (by user_id)
+    if user_id == recipient_user_id:
+        await update.message.reply_text(
+            "❌ <b>Нельзя перевести монеты самому себе!</b>",
+            parse_mode="HTML"
+        )
+        return
+    
+    # Show confirmation
+    message = (
+        f"⚠️ <b>Подтверждение Перевода</b>\n\n"
+        f"<b>Получатель:</b> @{username} ({recipient_name})\n"
+        f"<b>Сумма:</b> {amount} монет 💰\n"
+        f"<b>Твой баланс:</b> {sender['coins']} монет\n"
+        f"<b>Баланс после перевода:</b> {sender['coins'] - amount} монет\n\n"
+        f"Ты уверен, что хочешь перевести эти монеты? 🤔"
+    )
+    
+    keyboard = [
+        [InlineKeyboardButton("✅ Да, перевести", callback_data=f"confirm_pay_{recipient_user_id}_{amount}")],
+        [InlineKeyboardButton("❌ Отмена", callback_data="cancel_pay")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await update.message.reply_text(message, reply_markup=reply_markup, parse_mode="HTML")
 
 
 async def show_build_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, query=None, selected_gpu=None, selected_cpu=None):

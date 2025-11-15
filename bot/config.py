@@ -74,3 +74,9 @@ GADGET_TYPE_GROUPS = {
 # Gadget type order
 GADGET_TYPE_ORDER = ["phones", "tablets", "pcs", "pc_parts", "laptops"]
 
+# API Configuration
+API_HOST = "0.0.0.0"  # Listen on all interfaces
+API_PORT = 8400
+API_URL = "http://95.165.0.162:8400"  # Public URL for API
+FRONTEND_URL = "https://yourusername.github.io"  # Will be updated with actual GitHub Pages URL
+

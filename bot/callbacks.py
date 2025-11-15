@@ -537,4 +537,53 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         # No buttons - cards menu only accessible via /gadgets command
         await utils.safe_edit_message(query, message, parse_mode="HTML")
+    
+    elif data.startswith("confirm_pay_"):
+        # Format: confirm_pay_{recipient_user_id}_{amount}
+        parts = data.split("_")
+        if len(parts) != 4:
+            await query.answer("Ошибка: Неверный формат callback! 😢", show_alert=True)
+            return
+        
+        recipient_user_id = int(parts[2])
+        amount = int(parts[3])
+        
+        # Re-check balance (in case it changed)
+        sender = database.get_user(user_id)
+        if sender["coins"] < amount:
+            await query.answer("Недостаточно монет! Баланс изменился. 😢", show_alert=True)
+            return
+        
+        # Try to get recipient username for display
+        recipient_display = f"ID {recipient_user_id}"
+        try:
+            recipient_chat = await context.bot.get_chat(recipient_user_id)
+            if recipient_chat.username:
+                recipient_display = f"@{recipient_chat.username}"
+            elif recipient_chat.first_name:
+                recipient_display = f"{recipient_chat.first_name} (ID {recipient_user_id})"
+        except Exception:
+            pass  # Use default display if can't get username
+        
+        # Execute transfer
+        success, transfer_message = database.transfer_coins(user_id, recipient_user_id, amount)
+        
+        if success:
+            # Get updated balances
+            sender_updated = database.get_user(user_id)
+            
+            message = (
+                f"✅ <b>Перевод Выполнен!</b> 🎉\n\n"
+                f"<b>Получатель:</b> {recipient_display}\n"
+                f"<b>Сумма:</b> {amount} монет 💰\n\n"
+                f"<b>Твой новый баланс:</b> {sender_updated['coins']} монет 💰"
+            )
+        else:
+            message = f"❌ <b>Ошибка перевода!</b>\n\n{transfer_message}"
+        
+        await utils.safe_edit_message(query, message, parse_mode="HTML")
+    
+    elif data == "cancel_pay":
+        message = "❌ <b>Перевод отменён</b>\n\nПеревод не был выполнен."
+        await utils.safe_edit_message(query, message, parse_mode="HTML")
 

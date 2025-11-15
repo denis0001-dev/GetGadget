@@ -7,7 +7,7 @@ import os
 import time
 from typing import Dict, List, Optional
 
-DATA_DIR = "data"
+DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
 USERS_FILE = os.path.join(DATA_DIR, "users.json")
 CARDS_FILE = os.path.join(DATA_DIR, "cards.json")
 
@@ -197,4 +197,33 @@ def user_has_gadget(user_id: int, gadget_name: str) -> bool:
         if card["gadget_name"] == gadget_name:
             return True
     return False
+
+
+def transfer_coins(from_user_id: int, to_user_id: int, amount: int) -> tuple[bool, str]:
+    """
+    Transfer coins from one user to another.
+    Returns (success: bool, message: str).
+    """
+    from_user = get_user(from_user_id)
+    
+    # Check if sender has enough coins
+    if from_user["coins"] < amount:
+        return False, f"Недостаточно монет! У тебя {from_user['coins']} монет, требуется {amount}."
+    
+    # Check if amount is positive
+    if amount <= 0:
+        return False, "Сумма должна быть положительной!"
+    
+    # Check if trying to pay yourself
+    if from_user_id == to_user_id:
+        return False, "Нельзя перевести монеты самому себе!"
+    
+    # Deduct from sender
+    new_sender_balance = from_user["coins"] - amount
+    update_user(from_user_id, coins=new_sender_balance)
+    
+    # Add to receiver
+    add_coins(to_user_id, amount)
+    
+    return True, f"Перевод выполнен! Переведено {amount} монет."
 
