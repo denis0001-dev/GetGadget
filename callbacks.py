@@ -1,0 +1,375 @@
+"""
+Callback query handlers for the Telegram Gadget Card Bot.
+"""
+
+import time
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ContextTypes
+
+import gadgets
+import database
+import pc_generator
+import messages
+import utils
+from commands import show_cards, show_rarity_cards, show_build_menu, show_pcs, show_pc_details
+from config import RARITY_NAMES, CATEGORY_NAMES
+
+
+async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle button callbacks."""
+    query = update.callback_query
+    await query.answer()
+    
+    data = query.data
+    user_id = query.from_user.id
+    
+    if data == "get_card":
+        # Simulate /card command - send as new message
+        user = database.get_user(user_id)
+        gadget = gadgets.get_random_gadget()
+        card_id = database.add_card(
+            user_id,
+            gadget["name"],
+            gadget["category"],
+            gadget["price"],
+            gadget["rarity"]
+        )
+        database.update_user(user_id, last_card_time=time.time())
+        
+        message = messages.get_card_display_message(gadget, card_id, title="🎴 <b>Ты получил новую карточку!</b> 🎉")
+        # No buttons - cards menu only accessible via /cards command
+        await query.message.reply_text(message, parse_mode="HTML")
+    
+    elif data == "view_cards":
+        await show_cards(update, context, query)
+    
+    elif data.startswith("rarity_"):
+        rarity = data.split("_", 1)[1]
+        await show_rarity_cards(update, context, query, rarity)
+    
+    elif data == "profile":
+        message = messages.get_profile_message(user_id)
+        
+        keyboard = [
+            [InlineKeyboardButton("Мои Карточки 📚", callback_data="view_cards")],
+            [InlineKeyboardButton("Назад ↩️", callback_data="back_to_start")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")
+    
+    elif data == "build_pc":
+        await show_build_menu(update, context, query)
+    
+    elif data == "view_pcs":
+        await show_pcs(update, context, query)
+    
+    elif data == "help":
+        message = messages.get_help_message()
+        keyboard = [[InlineKeyboardButton("Назад ↩️", callback_data="back_to_start")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")
+    
+    elif data == "back_to_start":
+        user = database.get_user(user_id)
+        coins = user["coins"]
+        message = messages.get_start_message(coins)
+        keyboard = [
+            [InlineKeyboardButton("Получить Карточку 🎴", callback_data="get_card")],
+            [InlineKeyboardButton("Мои Карточки 📚", callback_data="view_cards")],
+            [InlineKeyboardButton("Профиль 👤", callback_data="profile")],
+            [InlineKeyboardButton("Собрать ПК 🖥️", callback_data="build_pc")],
+            [InlineKeyboardButton("Помощь ❓", callback_data="help")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")
+    
+    elif data.startswith("view_card_"):
+        card_id = int(data.split("_")[2])
+        card = database.get_card(user_id, card_id)
+        
+        if not card:
+            await query.answer("Карточка не найдена! 😢", show_alert=True)
+            return
+        
+        # If it's a PC, use the PC details view
+        if card["category"] == "PC":
+            await show_pc_details(user_id, card, query, back_callback="view_cards")
+            return
+        
+        rarity_emoji = gadgets.get_rarity_emoji(card["rarity"])
+        rarity_ru = RARITY_NAMES.get(card['rarity'], card['rarity'])
+        category_ru = CATEGORY_NAMES.get(card['category'], card['category'])
+        in_pc_indicator = "\n🔗 <b>Эта деталь находится в ПК</b>" if card.get("in_pc") else ""
+        
+        # Add title "You got a card"
+        title = "🎴 <b>Ты получил карточку!</b> 🎉"
+        message = (
+            f"{title}\n\n"
+            f"{rarity_emoji} <b>{card['gadget_name']}</b>\n\n"
+            f"<b>Категория:</b> {category_ru}\n"
+            f"<b>Редкость:</b> {rarity_ru}\n"
+            f"<b>Цена:</b> {card['purchase_price']} монет 💰{in_pc_indicator}"
+        )
+        
+        keyboard = []
+        if card.get("in_pc") is None:  # Only show sell if not in PC
+            sale_price = int(card["purchase_price"] * 0.85)
+            keyboard.append([InlineKeyboardButton(f"💰 Продать ({sale_price} монет)", callback_data=f"confirm_sell_{card_id}")])
+        # No back button - cards menu only accessible via /cards command
+        
+        reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
+        await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")
+    
+    elif data.startswith("confirm_sell_"):
+        card_id = int(data.split("_")[2])
+        card = database.get_card(user_id, card_id)
+        
+        if not card:
+            await query.answer("Карточка не найдена! 😢", show_alert=True)
+            return
+        
+        if card.get("in_pc"):
+            await query.answer("Нельзя продать деталь, которая в ПК! Сначала вытащи её.", show_alert=True)
+            return
+        
+        # Show confirmation
+        sale_price = int(card["purchase_price"] * 0.85)
+        rarity_emoji = gadgets.get_rarity_emoji(card["rarity"])
+        message = (
+            f"⚠️ <b>Подтверждение Продажи</b>\n\n"
+            f"{rarity_emoji} <b>{card['gadget_name']}</b>\n"
+            f"Оригинальная цена: {card['purchase_price']} монет\n"
+            f"Цена продажи: {sale_price} монет (85%)\n\n"
+            f"Ты уверен, что хочешь продать эту карточку? 🤔"
+        )
+        
+        keyboard = [
+            [InlineKeyboardButton("✅ Да, продать", callback_data=f"sell_{card_id}")],
+            [InlineKeyboardButton("❌ Отмена", callback_data=f"view_card_{card_id}")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")
+    
+    elif data.startswith("sell_") and not data.startswith("sell_pc_"):
+        card_id = int(data.split("_")[1])
+        card = database.get_card(user_id, card_id)
+        
+        if not card:
+            await query.answer("Карточка не найдена! 😢", show_alert=True)
+            return
+        
+        if card.get("in_pc"):
+            await query.answer("Нельзя продать деталь, которая в ПК! Сначала вытащи её.", show_alert=True)
+            return
+        
+        # Calculate sale price (85% of original)
+        sale_price = int(card["purchase_price"] * 0.85)
+        
+        # Add coins
+        new_balance = database.add_coins(user_id, sale_price)
+        
+        # Remove card
+        database.remove_card(user_id, card_id)
+        
+        rarity_emoji = gadgets.get_rarity_emoji(card["rarity"])
+        message = (
+            f"💰 <b>Карточка Продана!</b> 🎉\n\n"
+            f"{rarity_emoji} <b>{card['gadget_name']}</b>\n"
+            f"Оригинальная цена: {card['purchase_price']} монет\n"
+            f"Цена продажи: {sale_price} монет (85%)\n\n"
+            f"<b>Новый баланс:</b> {new_balance} монет 💰"
+        )
+        # No buttons - cards menu only accessible via /cards command
+        await query.edit_message_text(message, parse_mode="HTML")
+    
+    elif data.startswith("build_gpu_"):
+        gpu_id = int(data.split("_")[2])
+        await show_build_menu(update, context, query, selected_gpu=gpu_id)
+    
+    elif data.startswith("build_cpu_"):
+        parts = data.split("_")
+        if len(parts) == 3:
+            # Just GPU selected, now selecting CPU
+            gpu_id = int(parts[2])
+            await show_build_menu(update, context, query, selected_gpu=gpu_id)
+        else:
+            # CPU selected
+            gpu_id = int(parts[2])
+            cpu_id = int(parts[3])
+            await show_build_menu(update, context, query, selected_gpu=gpu_id, selected_cpu=cpu_id)
+    
+    elif data.startswith("build_mb_"):
+        parts = data.split("_")
+        gpu_id = int(parts[2])
+        cpu_id = int(parts[3])
+        mb_id = int(parts[4])
+        
+        # Get component cards
+        gpu_card = database.get_card(user_id, gpu_id)
+        cpu_card = database.get_card(user_id, cpu_id)
+        mb_card = database.get_card(user_id, mb_id)
+        
+        if not all([gpu_card, cpu_card, mb_card]):
+            await query.answer("Ошибка: Одна или несколько деталей не найдены! 😢", show_alert=True)
+            return
+        
+        # Generate PC specs
+        specs, pc_rarity, spec_price = pc_generator.generate_pc_specs(
+            gpu_card["rarity"],
+            cpu_card["rarity"],
+            mb_card["rarity"]
+        )
+        
+        # Calculate total price (components + specs, then add 15% premium)
+        component_total = gpu_card["purchase_price"] + cpu_card["purchase_price"] + mb_card["purchase_price"] + spec_price
+        total_price = int(component_total * 1.15)  # 15% higher than component total
+        
+        # Create PC card
+        pc_name = f"Custom Gaming PC ({gpu_card['gadget_name']})"
+        pc_card_id = database.add_card(
+            user_id,
+            pc_name,
+            "PC",
+            total_price,
+            pc_rarity
+        )
+        
+        # Update PC card with components and specs
+        database.update_card(user_id, pc_card_id, components=[gpu_id, cpu_id, mb_id], specs=specs)
+        
+        # Mark components as in PC
+        database.update_card(user_id, gpu_id, in_pc=pc_card_id)
+        database.update_card(user_id, cpu_id, in_pc=pc_card_id)
+        database.update_card(user_id, mb_id, in_pc=pc_card_id)
+        
+        # Show PC details with same buttons but no back button, with title
+        pc_card = database.get_card(user_id, pc_card_id)
+        title = "🖥️ <b>Твой ПК Успешно Собран!</b> 🎉"
+        await show_pc_details(user_id, pc_card, query, show_back=False, title=title)
+    
+    elif data.startswith("pc_"):
+        pc_id = int(data.split("_")[1])
+        pc_card = database.get_card(user_id, pc_id)
+        
+        if not pc_card or pc_card["category"] != "PC":
+            await query.answer("ПК не найден! 😢", show_alert=True)
+            return
+        
+        # Use reusable function
+        await show_pc_details(user_id, pc_card, query, back_callback="view_pcs")
+    
+    elif data.startswith("eject_"):
+        parts = data.split("_")
+        pc_id = int(parts[1])
+        comp_id = int(parts[2])
+        
+        pc_card = database.get_card(user_id, pc_id)
+        comp_card = database.get_card(user_id, comp_id)
+        
+        if not pc_card or not comp_card:
+            await query.answer("Ошибка: Карточка не найдена! 😢", show_alert=True)
+            return
+        
+        # Remove component from PC
+        components = pc_card.get("components", [])
+        if comp_id in components:
+            components.remove(comp_id)
+        
+        # If no components left, remove PC
+        if not components:
+            database.remove_card(user_id, pc_id)
+            message = (
+                f"🔧 <b>Деталь Вытащена!</b> 🎉\n\n"
+                f"<b>{comp_card['gadget_name']}</b> возвращена в твою коллекцию.\n"
+                f"ПК разобран (не осталось компонентов)."
+            )
+        else:
+            database.update_card(user_id, pc_id, components=components)
+            database.update_card(user_id, comp_id, in_pc=None)
+            message = (
+                f"🔧 <b>Деталь Вытащена!</b> 🎉\n\n"
+                f"<b>{comp_card['gadget_name']}</b> возвращена в твою коллекцию."
+            )
+        
+        # No buttons - cards menu only accessible via /cards command
+        await query.edit_message_text(message, parse_mode="HTML")
+    
+    elif data.startswith("confirm_sell_pc_"):
+        pc_id = int(data.split("_")[3])
+        pc_card = database.get_card(user_id, pc_id)
+        
+        if not pc_card or pc_card["category"] != "PC":
+            await query.answer("ПК не найден! 😢", show_alert=True)
+            return
+        
+        # Check if PC has all components (can only sell full PC)
+        components = pc_card.get("components", [])
+        if len(components) != 3:
+            await query.answer("Неполный ПК! Продать можно только полный ПК со всеми компонентами. 😢", show_alert=True)
+            return
+        
+        # Calculate PC sale price
+        pc_sale_price = utils.calculate_pc_sale_price(user_id, pc_card)
+        
+        rarity_emoji = gadgets.get_rarity_emoji(pc_card["rarity"])
+        message = (
+            f"⚠️ <b>Подтверждение Продажи ПК</b>\n\n"
+            f"{rarity_emoji} <b>{pc_card['gadget_name']}</b>\n"
+            f"Цена ПК: {pc_card['purchase_price']} монет\n"
+            f"Цена продажи: {pc_sale_price} монет\n\n"
+            f"⚠️ <b>Внимание:</b> Все компоненты будут проданы вместе с ПК!\n\n"
+            f"Ты уверен, что хочешь продать этот ПК? 🤔"
+        )
+        
+        keyboard = [
+            [InlineKeyboardButton("✅ Да, продать", callback_data=f"sell_pc_{pc_id}")],
+            [InlineKeyboardButton("❌ Отмена", callback_data=f"pc_{pc_id}")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")
+    
+    elif data.startswith("sell_pc_"):
+        pc_id = int(data.split("_")[2])
+        pc_card = database.get_card(user_id, pc_id)
+        
+        if not pc_card or pc_card["category"] != "PC":
+            await query.answer("ПК не найден! 😢", show_alert=True)
+            return
+        
+        # Check if PC has all components (can only sell full PC)
+        components = pc_card.get("components", [])
+        if len(components) != 3:
+            await query.answer("Неполный ПК! Продать можно только полный ПК со всеми компонентами. 😢", show_alert=True)
+            return
+        
+        # Get components list and PC info BEFORE any modifications
+        components = components.copy()  # Make a copy to avoid issues
+        pc_name = pc_card['gadget_name']
+        pc_price = pc_card['purchase_price']
+        pc_rarity = pc_card['rarity']
+        
+        # Calculate PC sale price (before modifications)
+        sale_price = utils.calculate_pc_sale_price(user_id, pc_card)
+        
+        # Remove all components (they're sold with the PC)
+        for comp_id in components:
+            database.remove_card(user_id, comp_id)
+        
+        # Add coins
+        new_balance = database.add_coins(user_id, sale_price)
+        
+        # Remove PC
+        database.remove_card(user_id, pc_id)
+        
+        rarity_emoji = gadgets.get_rarity_emoji(pc_rarity)
+        message = (
+            f"💰 <b>ПК Продан!</b> 🎉\n\n"
+            f"{rarity_emoji} <b>{pc_name}</b>\n"
+            f"Цена ПК: {pc_price} монет\n"
+            f"Цена продажи: {sale_price} монет\n\n"
+            f"Все компоненты проданы вместе с ПК.\n\n"
+            f"<b>Новый баланс:</b> {new_balance} монет 💰"
+        )
+        # No buttons - cards menu only accessible via /cards command
+        await query.edit_message_text(message, parse_mode="HTML")
+
