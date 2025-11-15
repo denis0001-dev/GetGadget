@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getTelegramUser, setupBackButton, hideBackButton, showAlert } from '../telegram';
+import { getTelegramUser, setupBackButton, hideBackButton, showAlert, getTelegramTheme } from '../telegram';
 import { api } from '../api/client';
+import { Header, List, Cell, Button, Loading } from '../components';
 
 function Build() {
   const navigate = useNavigate();
@@ -11,6 +12,7 @@ function Build() {
   const [selectedCPU, setSelectedCPU] = useState<number | null>(null);
   const [selectedMB, setSelectedMB] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const theme = getTelegramTheme();
 
   useEffect(() => {
     const telegramUser = getTelegramUser();
@@ -51,11 +53,15 @@ function Build() {
   };
 
   if (loading) {
-    return <div style={{ padding: '20px', textAlign: 'center' }}>Загрузка...</div>;
+    return <Loading />;
   }
 
   if (!parts) {
-    return <div style={{ padding: '20px', textAlign: 'center' }}>Ошибка загрузки</div>;
+    return (
+      <div style={{ padding: '20px', textAlign: 'center', color: theme.isDark ? '#ffffff' : '#000000' }}>
+        Ошибка загрузки
+      </div>
+    );
   }
 
   const hasAllParts = parts['Graphics Card']?.length > 0 && 
@@ -64,120 +70,175 @@ function Build() {
 
   if (!hasAllParts) {
     return (
-      <div style={{ padding: '20px' }}>
-        <h1>🖥️ Сборка ПК</h1>
-        <p>У вас нет всех необходимых деталей для сборки ПК.</p>
-        <button onClick={() => navigate('/')} style={{ padding: '12px', fontSize: '16px' }}>
-          Назад
-        </button>
+      <div style={{ backgroundColor: theme.isDark ? '#000000' : '#f7f7f8', minHeight: '100vh' }}>
+        <Header>🖥️ Сборка ПК</Header>
+        <div style={{ padding: '16px' }}>
+          <div style={{ 
+            textAlign: 'center', 
+            padding: '40px 20px',
+            color: theme.isDark ? '#8e8e93' : '#8e8e93'
+          }}>
+            У вас нет всех необходимых деталей для сборки ПК.
+          </div>
+          <Button onClick={() => navigate('/')} fullWidth>
+            Назад
+          </Button>
+        </div>
       </div>
     );
   }
 
+  const getSelectedPartName = (partId: number | null, category: string) => {
+    if (!partId || !parts[category]) return null;
+    return parts[category].find((p: any) => p.card_id === partId)?.gadget_name;
+  };
+
   return (
-    <div style={{ padding: '20px' }}>
-      <h1>🖥️ Сборка ПК</h1>
+    <div style={{ backgroundColor: theme.isDark ? '#000000' : '#f7f7f8', minHeight: '100vh' }}>
+      <Header>🖥️ Сборка ПК</Header>
       
-      {step === 'gpu' && (
-        <div>
-          <h2>Шаг 1: Выберите видеокарту</h2>
-          {parts['Graphics Card'].map((gpu: any) => (
-            <button
-              key={gpu.card_id}
-              onClick={() => {
-                setSelectedGPU(gpu.card_id);
-                setStep('cpu');
-              }}
-              style={{ 
-                display: 'block', 
-                width: '100%', 
-                padding: '12px', 
-                marginBottom: '10px',
-                fontSize: '16px'
-              }}
-            >
-              {gpu.gadget_name} ({gpu.rarity})
-            </button>
-          ))}
-        </div>
-      )}
+      <div style={{ padding: '16px' }}>
+        {step === 'gpu' && (
+          <div>
+            <div style={{ 
+              marginBottom: '16px',
+              fontSize: '16px',
+              color: theme.isDark ? '#ffffff' : '#000000'
+            }}>
+              Шаг 1: Выберите видеокарту
+            </div>
+            <List>
+              {parts['Graphics Card'].map((gpu: any) => (
+                <Cell
+                  key={gpu.card_id}
+                  onClick={() => {
+                    setSelectedGPU(gpu.card_id);
+                    setStep('cpu');
+                  }}
+                  after="→"
+                >
+                  <div>
+                    <div style={{ fontWeight: '500', marginBottom: '4px' }}>
+                      {gpu.gadget_name}
+                    </div>
+                    <div style={{ fontSize: '14px', color: theme.isDark ? '#8e8e93' : '#8e8e93' }}>
+                      {gpu.rarity}
+                    </div>
+                  </div>
+                </Cell>
+              ))}
+            </List>
+          </div>
+        )}
 
-      {step === 'cpu' && selectedGPU && (
-        <div>
-          <h2>Шаг 2: Выберите процессор</h2>
-          <p>Выбрана видеокарта: {parts['Graphics Card'].find((g: any) => g.card_id === selectedGPU)?.gadget_name}</p>
-          {parts['Processor'].map((cpu: any) => (
-            <button
-              key={cpu.card_id}
-              onClick={() => {
-                setSelectedCPU(cpu.card_id);
-                setStep('mb');
-              }}
-              style={{ 
-                display: 'block', 
-                width: '100%', 
-                padding: '12px', 
-                marginBottom: '10px',
-                fontSize: '16px'
-              }}
-            >
-              {cpu.gadget_name} ({cpu.rarity})
-            </button>
-          ))}
-          <button onClick={() => setStep('gpu')} style={{ padding: '12px', fontSize: '16px', marginTop: '10px' }}>
-            Назад
-          </button>
-        </div>
-      )}
+        {step === 'cpu' && selectedGPU && (
+          <div>
+            <div style={{ 
+              marginBottom: '16px',
+              fontSize: '16px',
+              color: theme.isDark ? '#ffffff' : '#000000'
+            }}>
+              Шаг 2: Выберите процессор
+            </div>
+            {getSelectedPartName(selectedGPU, 'Graphics Card') && (
+              <div style={{ 
+                marginBottom: '12px',
+                padding: '12px',
+                backgroundColor: theme.isDark ? '#1c1c1e' : '#ffffff',
+                borderRadius: '8px',
+                fontSize: '14px',
+                color: theme.isDark ? '#8e8e93' : '#8e8e93'
+              }}>
+                Выбрана видеокарта: {getSelectedPartName(selectedGPU, 'Graphics Card')}
+              </div>
+            )}
+            <List>
+              {parts['Processor'].map((cpu: any) => (
+                <Cell
+                  key={cpu.card_id}
+                  onClick={() => {
+                    setSelectedCPU(cpu.card_id);
+                    setStep('mb');
+                  }}
+                  after="→"
+                >
+                  <div>
+                    <div style={{ fontWeight: '500', marginBottom: '4px' }}>
+                      {cpu.gadget_name}
+                    </div>
+                    <div style={{ fontSize: '14px', color: theme.isDark ? '#8e8e93' : '#8e8e93' }}>
+                      {cpu.rarity}
+                    </div>
+                  </div>
+                </Cell>
+              ))}
+            </List>
+            <Button onClick={() => setStep('gpu')} variant="secondary" fullWidth style={{ marginTop: '16px' }}>
+              Назад
+            </Button>
+          </div>
+        )}
 
-      {step === 'mb' && selectedGPU && selectedCPU && (
-        <div>
-          <h2>Шаг 3: Выберите материнскую плату</h2>
-          <p>Видеокарта: {parts['Graphics Card'].find((g: any) => g.card_id === selectedGPU)?.gadget_name}</p>
-          <p>Процессор: {parts['Processor'].find((c: any) => c.card_id === selectedCPU)?.gadget_name}</p>
-          {parts['Motherboard'].map((mb: any) => (
-            <button
-              key={mb.card_id}
-              onClick={() => {
-                setSelectedMB(mb.card_id);
-              }}
-              style={{ 
-                display: 'block', 
-                width: '100%', 
-                padding: '12px', 
-                marginBottom: '10px',
-                fontSize: '16px',
-                backgroundColor: selectedMB === mb.card_id ? '#4CAF50' : undefined
-              }}
-            >
-              {mb.gadget_name} ({mb.rarity})
-            </button>
-          ))}
-          <button onClick={() => setStep('cpu')} style={{ padding: '12px', fontSize: '16px', marginTop: '10px' }}>
-            Назад
-          </button>
-          {selectedMB && (
-            <button 
-              onClick={handleBuild}
-              style={{ 
-                padding: '12px', 
-                fontSize: '16px', 
-                marginTop: '10px',
-                width: '100%',
-                backgroundColor: '#4CAF50',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px'
-              }}
-            >
-              Собрать ПК
-            </button>
-          )}
-        </div>
-      )}
+        {step === 'mb' && selectedGPU && selectedCPU && (
+          <div>
+            <div style={{ 
+              marginBottom: '16px',
+              fontSize: '16px',
+              color: theme.isDark ? '#ffffff' : '#000000'
+            }}>
+              Шаг 3: Выберите материнскую плату
+            </div>
+            <div style={{ 
+              marginBottom: '12px',
+              padding: '12px',
+              backgroundColor: theme.isDark ? '#1c1c1e' : '#ffffff',
+              borderRadius: '8px',
+              fontSize: '14px',
+              color: theme.isDark ? '#8e8e93' : '#8e8e93'
+            }}>
+              <div>Видеокарта: {getSelectedPartName(selectedGPU, 'Graphics Card')}</div>
+              <div>Процессор: {getSelectedPartName(selectedCPU, 'Processor')}</div>
+            </div>
+            <List>
+              {parts['Motherboard'].map((mb: any) => (
+                <Cell
+                  key={mb.card_id}
+                  onClick={() => setSelectedMB(mb.card_id)}
+                  after={selectedMB === mb.card_id ? '✓' : undefined}
+                  style={{
+                    backgroundColor: selectedMB === mb.card_id 
+                      ? (theme.isDark ? '#2c2c2e' : '#e5f4ff') 
+                      : undefined
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: '500', marginBottom: '4px' }}>
+                      {mb.gadget_name}
+                    </div>
+                    <div style={{ fontSize: '14px', color: theme.isDark ? '#8e8e93' : '#8e8e93' }}>
+                      {mb.rarity}
+                    </div>
+                  </div>
+                </Cell>
+              ))}
+            </List>
+            <Button onClick={() => setStep('cpu')} variant="secondary" fullWidth style={{ marginTop: '16px' }}>
+              Назад
+            </Button>
+            {selectedMB && (
+              <Button 
+                onClick={handleBuild}
+                fullWidth
+                style={{ marginTop: '12px' }}
+              >
+                Собрать ПК
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
 export default Build;
-

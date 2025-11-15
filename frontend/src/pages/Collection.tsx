@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getTelegramUser, setupBackButton, hideBackButton } from '../telegram';
+import { getTelegramUser, setupBackButton, hideBackButton, getTelegramTheme } from '../telegram';
 import { api } from '../api/client';
+import { Header, List, Cell, Loading } from '../components';
 
 function Collection() {
   const navigate = useNavigate();
   const [cards, setCards] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
+  const theme = getTelegramTheme();
 
   useEffect(() => {
     const telegramUser = getTelegramUser();
@@ -37,18 +39,27 @@ function Collection() {
     : cards.filter(card => card.category === filter);
 
   if (loading) {
-    return <div style={{ padding: '20px', textAlign: 'center' }}>Загрузка...</div>;
+    return <Loading />;
   }
 
   return (
-    <div style={{ padding: '20px' }}>
-      <h1>📚 Моя Коллекция</h1>
+    <div style={{ backgroundColor: theme.isDark ? '#000000' : '#f7f7f8', minHeight: '100vh' }}>
+      <Header>📚 Моя Коллекция</Header>
       
-      <div style={{ marginBottom: '20px' }}>
+      <div style={{ padding: '16px' }}>
         <select 
           value={filter} 
           onChange={(e) => setFilter(e.target.value)}
-          style={{ padding: '8px', fontSize: '16px', width: '100%' }}
+          style={{ 
+            padding: '12px 16px', 
+            fontSize: '16px', 
+            width: '100%',
+            marginBottom: '16px',
+            borderRadius: '12px',
+            border: theme.isDark ? '1px solid #2c2c2e' : '1px solid #e5e5e7',
+            backgroundColor: theme.isDark ? '#1c1c1e' : '#ffffff',
+            color: theme.isDark ? '#ffffff' : '#000000',
+          }}
         >
           <option value="all">Все</option>
           <option value="Phone">Телефоны</option>
@@ -59,34 +70,38 @@ function Collection() {
           <option value="Motherboard">Материнские платы</option>
           <option value="PC">ПК</option>
         </select>
-      </div>
 
-      {filteredCards.length === 0 ? (
-        <p>Нет карточек в этой категории</p>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {filteredCards.map((card) => (
-            <div
-              key={card.card_id}
-              onClick={() => navigate(`/collection/${card.card_id}`)}
-              style={{
-                padding: '15px',
-                border: '1px solid #ddd',
-                borderRadius: '8px',
-                cursor: 'pointer',
-              }}
-            >
-              <h3>{card.gadget_name}</h3>
-              <p>Категория: {card.category}</p>
-              <p>Редкость: {card.rarity}</p>
-              <p>Цена: {card.purchase_price} монет</p>
-            </div>
-          ))}
-        </div>
-      )}
+        {filteredCards.length === 0 ? (
+          <div style={{ 
+            textAlign: 'center', 
+            padding: '40px 20px',
+            color: theme.isDark ? '#8e8e93' : '#8e8e93'
+          }}>
+            Нет карточек в этой категории
+          </div>
+        ) : (
+          <List>
+            {filteredCards.map((card) => (
+              <Cell
+                key={card.card_id}
+                onClick={() => navigate(`/collection/${card.card_id}`)}
+                after="→"
+              >
+                <div>
+                  <div style={{ fontWeight: '500', marginBottom: '4px' }}>
+                    {card.gadget_name}
+                  </div>
+                  <div style={{ fontSize: '14px', color: theme.isDark ? '#8e8e93' : '#8e8e93' }}>
+                    {card.category} • {card.rarity} • {card.purchase_price} монет
+                  </div>
+                </div>
+              </Cell>
+            ))}
+          </List>
+        )}
+      </div>
     </div>
   );
 }
 
 export default Collection;
-

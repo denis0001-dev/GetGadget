@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getTelegramUser, setupBackButton, hideBackButton, showConfirm } from '../telegram';
+import { getTelegramUser, setupBackButton, hideBackButton, showConfirm, getTelegramTheme } from '../telegram';
 import { api } from '../api/client';
+import { Header, Card, Button, Loading, List, Cell } from '../components';
 
 function PCDetails() {
   const { pcId } = useParams<{ pcId: string }>();
@@ -9,6 +10,7 @@ function PCDetails() {
   const [pc, setPC] = useState<any>(null);
   const [components, setComponents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const theme = getTelegramTheme();
 
   useEffect(() => {
     const telegramUser = getTelegramUser();
@@ -73,66 +75,142 @@ function PCDetails() {
   };
 
   if (loading) {
-    return <div style={{ padding: '20px', textAlign: 'center' }}>Загрузка...</div>;
+    return <Loading />;
   }
 
   if (!pc) {
-    return <div style={{ padding: '20px', textAlign: 'center' }}>ПК не найден</div>;
+    return (
+      <div style={{ padding: '20px', textAlign: 'center', color: theme.isDark ? '#ffffff' : '#000000' }}>
+        ПК не найден
+      </div>
+    );
   }
 
   const specs = pc.specs || {};
+  const componentTypes = ['🎮 Видеокарта', '⚡ Процессор', '🔌 Материнка'];
 
   return (
-    <div style={{ padding: '20px' }}>
-      <h1>{pc.gadget_name}</h1>
-      <div style={{ marginBottom: '20px' }}>
-        <p><strong>Редкость:</strong> {pc.rarity}</p>
-        <p><strong>Цена:</strong> {pc.purchase_price} монет</p>
-        
-        <h3>Компоненты:</h3>
-        {components.map((comp, idx) => (
-          <div key={comp.card_id} style={{ marginBottom: '10px' }}>
-            <p>
-              {idx === 0 && '🎮 '}
-              {idx === 1 && '⚡ '}
-              {idx === 2 && '🔌 '}
-              {comp.gadget_name}
-            </p>
-            <button 
-              onClick={() => handleEject(comp.card_id)}
-              style={{ padding: '8px', fontSize: '14px' }}
-            >
-              Вытащить
-            </button>
+    <div style={{ backgroundColor: theme.isDark ? '#000000' : '#f7f7f8', minHeight: '100vh' }}>
+      <Header>{pc.gadget_name}</Header>
+      
+      <div style={{ padding: '16px' }}>
+        <Card>
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ fontSize: '14px', color: theme.isDark ? '#8e8e93' : '#8e8e93', marginBottom: '4px' }}>
+              Редкость
+            </div>
+            <div style={{ fontSize: '16px', fontWeight: '500' }}>
+              {pc.rarity}
+            </div>
           </div>
-        ))}
-        
-        <h3>Характеристики:</h3>
-        <p>💾 ОЗУ: {specs.ram || 'Н/Д'}</p>
-        <p>💿 Накопитель: {specs.storage || 'Н/Д'}</p>
-        <p>🔋 БП: {specs.psu || 'Н/Д'}</p>
-        <p>📦 Корпус: {specs.case || 'Н/Д'}</p>
-      </div>
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ fontSize: '14px', color: theme.isDark ? '#8e8e93' : '#8e8e93', marginBottom: '4px' }}>
+              Цена
+            </div>
+            <div style={{ fontSize: '16px', fontWeight: '500' }}>
+              {pc.purchase_price} монет
+            </div>
+          </div>
+        </Card>
 
-      {components.length === 3 && (
-        <button 
-          onClick={handleSell}
-          style={{ 
-            padding: '12px', 
+        <Card>
+          <div style={{ 
             fontSize: '16px', 
-            backgroundColor: '#ff4444',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            width: '100%'
-          }}
-        >
-          💰 Продать ПК
-        </button>
-      )}
+            fontWeight: '600', 
+            marginBottom: '12px',
+            color: theme.isDark ? '#ffffff' : '#000000'
+          }}>
+            Компоненты
+          </div>
+          <List>
+            {components.map((comp, idx) => (
+              <Cell
+                key={comp.card_id}
+                before={componentTypes[idx]}
+                after={
+                  <Button
+                    onClick={() => handleEject(comp.card_id)}
+                    variant="secondary"
+                    style={{ padding: '6px 12px', fontSize: '14px' }}
+                  >
+                    Вытащить
+                  </Button>
+                }
+              >
+                <div style={{ fontWeight: '500' }}>
+                  {comp.gadget_name}
+                </div>
+              </Cell>
+            ))}
+          </List>
+        </Card>
+
+        <Card>
+          <div style={{ 
+            fontSize: '16px', 
+            fontWeight: '600', 
+            marginBottom: '12px',
+            color: theme.isDark ? '#ffffff' : '#000000'
+          }}>
+            Характеристики
+          </div>
+          <List>
+            <Cell>
+              <div>
+                <div style={{ fontSize: '14px', color: theme.isDark ? '#8e8e93' : '#8e8e93', marginBottom: '4px' }}>
+                  💾 ОЗУ
+                </div>
+                <div style={{ fontSize: '16px', fontWeight: '500' }}>
+                  {specs.ram || 'Н/Д'}
+                </div>
+              </div>
+            </Cell>
+            <Cell>
+              <div>
+                <div style={{ fontSize: '14px', color: theme.isDark ? '#8e8e93' : '#8e8e93', marginBottom: '4px' }}>
+                  💿 Накопитель
+                </div>
+                <div style={{ fontSize: '16px', fontWeight: '500' }}>
+                  {specs.storage || 'Н/Д'}
+                </div>
+              </div>
+            </Cell>
+            <Cell>
+              <div>
+                <div style={{ fontSize: '14px', color: theme.isDark ? '#8e8e93' : '#8e8e93', marginBottom: '4px' }}>
+                  🔋 БП
+                </div>
+                <div style={{ fontSize: '16px', fontWeight: '500' }}>
+                  {specs.psu || 'Н/Д'}
+                </div>
+              </div>
+            </Cell>
+            <Cell>
+              <div>
+                <div style={{ fontSize: '14px', color: theme.isDark ? '#8e8e93' : '#8e8e93', marginBottom: '4px' }}>
+                  📦 Корпус
+                </div>
+                <div style={{ fontSize: '16px', fontWeight: '500' }}>
+                  {specs.case || 'Н/Д'}
+                </div>
+              </div>
+            </Cell>
+          </List>
+        </Card>
+
+        {components.length === 3 && (
+          <Button 
+            onClick={handleSell}
+            variant="danger"
+            fullWidth
+            style={{ marginTop: '16px' }}
+          >
+            💰 Продать ПК
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
 
 export default PCDetails;
-
