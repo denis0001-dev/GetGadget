@@ -2,8 +2,9 @@
 Callback query handlers for the Telegram Gadget Card Bot.
 """
 
+import os
 import time
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
 from telegram.ext import ContextTypes
 
 import gadgets
@@ -18,10 +19,13 @@ from config import RARITY_NAMES, CATEGORY_NAMES
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle button callbacks."""
     query = update.callback_query
-    await query.answer()
-    
     data = query.data
     user_id = query.from_user.id
+    
+    # Log all callbacks for debugging
+    print(f"[DEBUG] Received callback: data='{data}', user_id={user_id}, length={len(data.encode('utf-8'))} bytes")
+    
+    await query.answer()
     
     if data == "get_card":
         # Simulate /card command - send as new message
@@ -37,25 +41,63 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         database.update_user(user_id, last_card_time=time.time())
         
         message = messages.get_card_display_message(gadget, card_id, title="🎴 <b>Ты получил новую карточку!</b> 🎉")
-        # No buttons - cards menu only accessible via /cards command
-        await query.message.reply_text(message, parse_mode="HTML")
+        # Send with image
+        photo_path = utils.IMAGE_PATHS["new_card"]
+        if os.path.exists(photo_path):
+            with open(photo_path, 'rb') as photo:
+                await query.message.reply_photo(photo=photo, caption=message, parse_mode="HTML")
+        else:
+            await query.message.reply_text(message, parse_mode="HTML")
     
     elif data == "view_gadgets":
         await show_gadgets(update, context, query)
     
     elif data.startswith("gadget_type_"):
+        print(f"[DEBUG] Processing gadget_type callback: {data}")
         if data.startswith("gadget_type_rarity_"):
             # Format: gadget_type_rarity_{type}_{rarity}
-            # Example: gadget_type_rarity_phones_Common
-            parts = data.split("_", 4)
-            if len(parts) >= 5:
-                gadget_type = parts[3]
-                rarity = "_".join(parts[4:])  # Handle multi-word rarities (though we don't have any)
-                await show_gadget_type_rarity_cards(update, context, query, gadget_type, rarity)
+            # Example: gadget_type_rarity_phones_Common or gadget_type_rarity_pc_parts_Rare
+            print(f"[DEBUG] Detected gadget_type_rarity_ format")
+            # Remove "gadget_type_rarity_" prefix
+            prefix = "gadget_type_rarity_"
+            rest = data[len(prefix):]
+            print(f"[DEBUG] Prefix length: {len(prefix)}, Rest after prefix: '{rest}'")
+            
+            # Try to find the rarity at the end (rarities are single words: Rare, Common, etc.)
+            # Known rarities: Trash, Common, Uncommon, Rare, Epic, Legendary, Mythic
+            known_rarities = ["Trash", "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic"]
+            
+            # Find which rarity matches the end
+            rarity = None
+            gadget_type = None
+            
+            for known_rarity in known_rarities:
+                if rest.endswith(f"_{known_rarity}"):
+                    rarity = known_rarity
+                    # Everything before the rarity is the gadget_type
+                    gadget_type = rest[:-len(f"_{known_rarity}")]
+                    break
+            
+            if rarity and gadget_type:
+                print(f"[DEBUG] Extracted: gadget_type={gadget_type}, rarity={rarity}")
+                print(f"[DEBUG] Calling show_gadget_type_rarity_cards...")
+                try:
+                    await show_gadget_type_rarity_cards(update, context, query, gadget_type, rarity)
+                    print(f"[DEBUG] show_gadget_type_rarity_cards completed successfully")
+                except Exception as e:
+                    print(f"[DEBUG] ERROR in show_gadget_type_rarity_cards: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    await query.answer("Произошла ошибка при загрузке карточек! 😢", show_alert=True)
+            else:
+                print(f"[DEBUG] ERROR: Could not parse gadget_type and rarity from: {rest}")
+                await query.answer("Ошибка: Неверный формат callback! 😢", show_alert=True)
         else:
             # Format: gadget_type_{type}
             # Example: gadget_type_phones
+            print(f"[DEBUG] Detected gadget_type format (not rarity)")
             gadget_type = data.split("_", 2)[2]
+            print(f"[DEBUG] Extracted gadget_type: {gadget_type}")
             await show_gadget_type_rarities(update, context, query, gadget_type)
     
     elif data == "profile":
@@ -66,7 +108,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("Назад ↩️", callback_data="back_to_start")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")
+        await utils.safe_edit_message(query, message, reply_markup, parse_mode="HTML")
     
     elif data == "build_pc":
         await show_build_menu(update, context, query)
@@ -78,7 +120,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         message = messages.get_help_message()
         keyboard = [[InlineKeyboardButton("Назад ↩️", callback_data="back_to_start")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")
+        await utils.safe_edit_message(query, message, reply_markup, parse_mode="HTML")
     
     elif data == "back_to_start":
         user = database.get_user(user_id)
@@ -92,10 +134,83 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("Помощь ❓", callback_data="help")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")
+        await utils.safe_edit_message(query, message, reply_markup, parse_mode="HTML")
     
-    elif data.startswith("view_card_"):
-        card_id = int(data.split("_")[2])
+    elif data.startswith("view_card_") or data.startswith("vc_"):
+        print(f"[DEBUG] Processing view_card callback: {data}")
+        # Parse callback data: 
+        # Old format: view_card_{card_id} or view_card_{card_id}_{back_callback}
+        # New format: vc_{card_id} or vc_{card_id}_{type_short}_{rarity_short}
+        try:
+            # Handle both old and new formats
+            if data.startswith("view_card_"):
+                # Old format - remove "view_card_" prefix
+                rest = data[10:]  # len("view_card_") = 10
+                print(f"[DEBUG] Old format detected, rest: {rest}")
+            else:
+                # New format - remove "vc_" prefix
+                rest = data[3:]  # len("vc_") = 3
+                print(f"[DEBUG] New format detected, rest: {rest}")
+            
+            # Find the first occurrence of underscore after card_id
+            # Card ID is numeric, so we find where the number ends
+            card_id_str = ""
+            i = 0
+            while i < len(rest) and rest[i].isdigit():
+                card_id_str += rest[i]
+                i += 1
+            
+            if not card_id_str:
+                print(f"Error: Invalid callback format, no card_id found. data={data}")
+                await query.answer("Ошибка: Неверный формат callback! 😢", show_alert=True)
+                return
+            
+            card_id = int(card_id_str)
+            print(f"[DEBUG] Extracted card_id: {card_id}")
+            
+            # Parse back_callback from new format: vc_{card_id}_{type_short}_{rarity_short}
+            back_callback = None
+            if i < len(rest) and rest[i] == "_":
+                # New format: extract type and rarity
+                parts = rest[i+1:].split("_", 1)
+                print(f"[DEBUG] Parts after card_id: {parts}")
+                if len(parts) >= 2:
+                    type_short, rarity_short = parts[0], parts[1]
+                    print(f"[DEBUG] type_short={type_short}, rarity_short={rarity_short}")
+                    
+                    # Map short codes back to full names
+                    type_map = {
+                        "ph": "phones",
+                        "tab": "tablets",
+                        "pc": "pcs", 
+                        "pt": "pc_parts",
+                        "lap": "laptops"
+                    }
+                    
+                    # Map rarity short codes back
+                    rarity_map = {
+                        "T": "Trash",
+                        "C": "Common",
+                        "U": "Uncommon",
+                        "R": "Rare",
+                        "E": "Epic",
+                        "L": "Legendary",
+                        "M": "Mythic"
+                    }
+                    
+                    gadget_type = type_map.get(type_short, type_short)
+                    rarity = rarity_map.get(rarity_short, rarity_short)
+                    back_callback = f"gadget_type_rarity_{gadget_type}_{rarity}"
+                    print(f"[DEBUG] Mapped to: gadget_type={gadget_type}, rarity={rarity}, back_callback={back_callback}")
+                elif len(parts) == 1:
+                    # Old format - everything after card_id is back_callback
+                    back_callback = rest[i+1:]
+                    print(f"[DEBUG] Old format back_callback: {back_callback}")
+        except (ValueError, IndexError) as e:
+            print(f"Error parsing callback_data: {data}, error: {e}")
+            await query.answer("Ошибка при обработке запроса! 😢", show_alert=True)
+            return
+        
         card = database.get_card(user_id, card_id)
         
         if not card:
@@ -104,7 +219,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         # If it's a PC, use the PC details view
         if card["category"] == "PC":
-            await show_pc_details(user_id, card, query, back_callback="view_gadgets")
+            back = back_callback if back_callback else "view_gadgets"
+            await show_pc_details(user_id, card, query, back_callback=back)
             return
         
         rarity_emoji = gadgets.get_rarity_emoji(card["rarity"])
@@ -112,24 +228,60 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         category_ru = CATEGORY_NAMES.get(card['category'], card['category'])
         in_pc_indicator = "\n🔗 <b>Эта деталь находится в ПК</b>" if card.get("in_pc") else ""
         
-        # Add title "You got a card"
-        title = "🎴 <b>Ты получил карточку!</b> 🎉"
-        message = (
-            f"{title}\n\n"
-            f"{rarity_emoji} <b>{card['gadget_name']}</b>\n\n"
-            f"<b>Категория:</b> {category_ru}\n"
-            f"<b>Редкость:</b> {rarity_ru}\n"
-            f"<b>Цена:</b> {card['purchase_price']} монет 💰{in_pc_indicator}"
-        )
+        # Only show "You got a card" title if opened from get_card (no back_callback)
+        # If opened from collection (has back_callback), don't show the title
+        if back_callback:
+            message = (
+                f"{rarity_emoji} <b>{card['gadget_name']}</b>\n\n"
+                f"<b>Категория:</b> {category_ru}\n"
+                f"<b>Редкость:</b> {rarity_ru}\n"
+                f"<b>Цена:</b> {card['purchase_price']} монет 💰{in_pc_indicator}"
+            )
+        else:
+            # Opened from get_card - show title
+            title = "🎴 <b>Ты получил карточку!</b> 🎉"
+            message = (
+                f"{title}\n\n"
+                f"{rarity_emoji} <b>{card['gadget_name']}</b>\n\n"
+                f"<b>Категория:</b> {category_ru}\n"
+                f"<b>Редкость:</b> {rarity_ru}\n"
+                f"<b>Цена:</b> {card['purchase_price']} монет 💰{in_pc_indicator}"
+            )
         
         keyboard = []
         if card.get("in_pc") is None:  # Only show sell if not in PC
             sale_price = int(card["purchase_price"] * 0.85)
             keyboard.append([InlineKeyboardButton(f"💰 Продать ({sale_price} монет)", callback_data=f"confirm_sell_{card_id}")])
-        # No back button - gadgets menu only accessible via /gadgets command
+        
+        # Add back button if opened from collection
+        if back_callback:
+            keyboard.append([InlineKeyboardButton("Назад ↩️", callback_data=back_callback)])
         
         reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
-        await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")
+        
+        # Show card with image when viewing from collection
+        if back_callback:
+            # Viewing from collection - show with card image
+            photo_path = utils.IMAGE_PATHS["card_view"]
+            if os.path.exists(photo_path):
+                from telegram import InputMediaPhoto
+                with open(photo_path, 'rb') as photo:
+                    media = InputMediaPhoto(media=photo, caption=message, parse_mode="HTML")
+                    await query.edit_message_media(media=media, reply_markup=reply_markup)
+            else:
+                # Fallback to text if image doesn't exist
+                await utils.safe_edit_message(query, message, reply_markup, parse_mode="HTML", remove_media=True)
+        else:
+            # Opened from get_card - show with new card image
+            photo_path = utils.IMAGE_PATHS["new_card"]
+            if os.path.exists(photo_path):
+                from telegram import InputMediaPhoto
+                with open(photo_path, 'rb') as photo:
+                    media = InputMediaPhoto(media=photo, caption=message, parse_mode="HTML")
+                    await query.edit_message_media(media=media, reply_markup=reply_markup)
+            else:
+                # Fallback to text if image doesn't exist
+                await utils.safe_edit_message(query, message, reply_markup, parse_mode="HTML", remove_media=True)
     
     elif data.startswith("confirm_sell_"):
         card_id = int(data.split("_")[2])
@@ -154,12 +306,14 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Ты уверен, что хочешь продать эту карточку? 🤔"
         )
         
+        # Try to preserve back callback from the original view_card call
+        # We'll use a simple approach - just go back to view_gadgets
         keyboard = [
             [InlineKeyboardButton("✅ Да, продать", callback_data=f"sell_{card_id}")],
             [InlineKeyboardButton("❌ Отмена", callback_data=f"view_card_{card_id}")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")
+        await utils.safe_edit_message(query, message, reply_markup, parse_mode="HTML")
     
     elif data.startswith("sell_") and not data.startswith("sell_pc_"):
         card_id = int(data.split("_")[1])
@@ -190,8 +344,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Цена продажи: {sale_price} монет (85%)\n\n"
             f"<b>Новый баланс:</b> {new_balance} монет 💰"
         )
-        # No buttons - cards menu only accessible via /cards command
-        await query.edit_message_text(message, parse_mode="HTML")
+        # No buttons - cards menu only accessible via /gadgets command
+        await utils.safe_edit_message(query, message, parse_mode="HTML")
     
     elif data.startswith("build_gpu_"):
         gpu_id = int(data.split("_")[2])
@@ -302,8 +456,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"<b>{comp_card['gadget_name']}</b> возвращена в твою коллекцию."
             )
         
-        # No buttons - cards menu only accessible via /cards command
-        await query.edit_message_text(message, parse_mode="HTML")
+        # No buttons - cards menu only accessible via /gadgets command
+        await utils.safe_edit_message(query, message, parse_mode="HTML")
     
     elif data.startswith("confirm_sell_pc_"):
         pc_id = int(data.split("_")[3])
@@ -337,7 +491,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("❌ Отмена", callback_data=f"pc_{pc_id}")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")
+        await utils.safe_edit_message(query, message, reply_markup, parse_mode="HTML")
     
     elif data.startswith("sell_pc_"):
         pc_id = int(data.split("_")[2])
@@ -381,6 +535,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Все компоненты проданы вместе с ПК.\n\n"
             f"<b>Новый баланс:</b> {new_balance} монет 💰"
         )
-        # No buttons - cards menu only accessible via /cards command
-        await query.edit_message_text(message, parse_mode="HTML")
+        # No buttons - cards menu only accessible via /gadgets command
+        await utils.safe_edit_message(query, message, parse_mode="HTML")
 

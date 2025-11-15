@@ -2,6 +2,7 @@
 Command handlers for the Telegram Gadget Card Bot.
 """
 
+import os
 import time
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
@@ -78,11 +79,17 @@ async def card_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = messages.get_card_display_message(gadget, card_id, title="🎴 <b>Ты получил новую карточку!</b> 🎉")
     
     keyboard = [
-        [InlineKeyboardButton("Мои Карточки 📚", callback_data="view_cards")]
+        [InlineKeyboardButton("Мои Гаджеты 📚", callback_data="view_gadgets")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    await update.message.reply_text(message, reply_markup=reply_markup, parse_mode="HTML")
+    # Send with image
+    photo_path = utils.IMAGE_PATHS["new_card"]
+    if os.path.exists(photo_path):
+        with open(photo_path, 'rb') as photo:
+            await update.message.reply_photo(photo=photo, caption=message, reply_markup=reply_markup, parse_mode="HTML")
+    else:
+        await update.message.reply_text(message, reply_markup=reply_markup, parse_mode="HTML")
 
 
 async def gadgets_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -108,7 +115,7 @@ async def show_gadgets(update: Update, context: ContextTypes.DEFAULT_TYPE, query
         keyboard = [[InlineKeyboardButton("Получить Карточку 🎴", callback_data="get_card")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
-        await utils.send_or_edit_message(query, message_obj, message, reply_markup)
+        await utils.send_or_edit_message(query, message_obj, message, reply_markup, photo_path=utils.IMAGE_PATHS["empty_collection"])
         return
     
     # Count cards by type (excluding parts in PC)
@@ -135,7 +142,7 @@ async def show_gadgets(update: Update, context: ContextTypes.DEFAULT_TYPE, query
     
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    await utils.send_or_edit_message(query, message_obj, message, reply_markup)
+    await utils.send_or_edit_message(query, message_obj, message, reply_markup, photo_path=utils.IMAGE_PATHS["gadgets"])
 
 
 async def show_gadget_type_rarities(update: Update, context: ContextTypes.DEFAULT_TYPE, query, gadget_type: str):
@@ -183,20 +190,28 @@ async def show_gadget_type_rarities(update: Update, context: ContextTypes.DEFAUL
     keyboard.append([InlineKeyboardButton("Назад ↩️", callback_data="view_gadgets")])
     
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")
+    
+    # Use gadgets.png image for rarities menu
+    await utils.send_or_edit_message(query, None, message, reply_markup, photo_path=utils.IMAGE_PATHS["gadgets"])
 
 
 async def show_gadget_type_rarity_cards(update: Update, context: ContextTypes.DEFAULT_TYPE, query, gadget_type: str, rarity: str):
     """Show cards of a specific gadget type and rarity."""
     from config import GADGET_TYPE_GROUPS, RARITY_NAMES
     
+    print(f"[DEBUG] show_gadget_type_rarity_cards called with: gadget_type={gadget_type}, rarity={rarity}")
+    
     user_id = query.from_user.id
     cards = database.get_user_cards(user_id)
+    print(f"[DEBUG] User has {len(cards)} total cards")
     
     type_info = GADGET_TYPE_GROUPS.get(gadget_type)
     if not type_info:
+        print(f"[DEBUG] ERROR: Unknown gadget_type: {gadget_type}")
         await query.answer("Неизвестный тип гаджета! 😢", show_alert=True)
         return
+    
+    print(f"[DEBUG] Type info found: {type_info['name']}, categories: {type_info['categories']}")
     
     # Filter cards by type and rarity (excluding parts in PC)
     filtered_cards = [
@@ -206,7 +221,12 @@ async def show_gadget_type_rarity_cards(update: Update, context: ContextTypes.DE
         and card.get("in_pc") is None
     ]
     
+    print(f"[DEBUG] Filtered cards: {len(filtered_cards)} cards found")
+    for card in filtered_cards[:3]:  # Log first 3 cards
+        print(f"[DEBUG]   - {card['gadget_name']} ({card['category']}, {card['rarity']})")
+    
     if not filtered_cards:
+        print(f"[DEBUG] No filtered cards found!")
         await query.answer("Нет гаджетов этой редкости! 😢", show_alert=True)
         return
     
@@ -219,12 +239,34 @@ async def show_gadget_type_rarity_cards(update: Update, context: ContextTypes.DE
     # Create keyboard with buttons for all cards
     keyboard = []
     row = []
+    
+    # Create shorter callback format to avoid Telegram's 64-byte limit
+    # Format: vc_{card_id}_{type_short}_{rarity_short}
+    # Short codes: phones=ph, tablets=tab, pcs=pc, pc_parts=pt, laptops=lap
+    type_short = {
+        "phones": "ph",
+        "tablets": "tab", 
+        "pcs": "pc",
+        "pc_parts": "pt",
+        "laptops": "lap"
+    }.get(gadget_type, gadget_type[:2])
+    
+    # Short rarity codes: Trash=T, Common=C, Uncommon=U, Rare=R, Epic=E, Legendary=L, Mythic=M
+    rarity_short = rarity[0] if rarity else "C"
+    
     for card in filtered_cards:
-        card_emoji = "🖥️" if card["category"] == "PC" else rarity_emoji
-        button_text = f"{card_emoji} {card['gadget_name'][:15]}"
-        if len(button_text) > 20:
-            button_text = button_text[:17] + "..."
-        row.append(InlineKeyboardButton(button_text, callback_data=f"view_card_{card['card_id']}"))
+        button_text = card['gadget_name']
+        # Use shorter callback format: vc_{card_id}_{type}_{rarity}
+        callback_data = f"vc_{card['card_id']}_{type_short}_{rarity_short}"
+        
+        # Check callback_data length (Telegram limit is 64 bytes)
+        if len(callback_data.encode('utf-8')) > 64:
+            # Fallback to just card_id if too long
+            callback_data = f"vc_{card['card_id']}"
+            print(f"Warning: callback_data too long, using fallback: {callback_data}")
+        
+        print(f"[DEBUG] Creating button: text='{button_text[:30]}...', callback_data='{callback_data}', length={len(callback_data.encode('utf-8'))} bytes")
+        row.append(InlineKeyboardButton(button_text, callback_data=callback_data))
         if len(row) == 2:
             keyboard.append(row)
             row = []
@@ -235,7 +277,9 @@ async def show_gadget_type_rarity_cards(update: Update, context: ContextTypes.DE
     keyboard.append([InlineKeyboardButton("Назад ↩️", callback_data=f"gadget_type_{gadget_type}")])
     
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")
+    
+    # Use gadgets.png image for cards list menu
+    await utils.send_or_edit_message(query, None, message, reply_markup, photo_path=utils.IMAGE_PATHS["gadgets"])
 
 
 async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -310,7 +354,7 @@ async def show_build_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
         keyboard.append([InlineKeyboardButton("Отмена ❌", callback_data="view_gadgets")])
         reply_markup = InlineKeyboardMarkup(keyboard)
         
-        await utils.send_or_edit_message(query, message_obj, message, reply_markup)
+        await utils.send_or_edit_message(query, message_obj, message, reply_markup, photo_path=utils.IMAGE_PATHS["build_pc"])
         return
     
     if not selected_cpu:
@@ -334,7 +378,16 @@ async def show_build_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
             keyboard.append([InlineKeyboardButton(button_text, callback_data=f"build_cpu_{selected_gpu}_{card['card_id']}")])
         keyboard.append([InlineKeyboardButton("Назад ↩️", callback_data="build_pc")])
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")
+        
+        # Use build-pc image
+        photo_path = utils.IMAGE_PATHS["build_pc"]
+        if os.path.exists(photo_path):
+            from telegram import InputMediaPhoto
+            with open(photo_path, 'rb') as photo:
+                media = InputMediaPhoto(media=photo, caption=message, parse_mode="HTML")
+                await query.edit_message_media(media=media, reply_markup=reply_markup)
+        else:
+            await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")
         return
     
     # Step 3: Select Motherboard (already checked at start, but double-check in case parts were removed)
@@ -363,7 +416,16 @@ async def show_build_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
         keyboard.append([InlineKeyboardButton(button_text, callback_data=f"build_mb_{selected_gpu}_{selected_cpu}_{card['card_id']}")])
     keyboard.append([InlineKeyboardButton("Назад ↩️", callback_data=f"build_cpu_{selected_gpu}")])
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")
+    
+    # Use build-pc image
+    photo_path = utils.IMAGE_PATHS["build_pc"]
+    if os.path.exists(photo_path):
+        from telegram import InputMediaPhoto
+        with open(photo_path, 'rb') as photo:
+            media = InputMediaPhoto(media=photo, caption=message, parse_mode="HTML")
+            await query.edit_message_media(media=media, reply_markup=reply_markup)
+    else:
+        await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")
 
 
 async def show_pcs(update: Update, context: ContextTypes.DEFAULT_TYPE, query=None):
@@ -482,5 +544,14 @@ async def show_pc_details(user_id: int, pc_card: dict, query, back_callback: str
         keyboard.append([InlineKeyboardButton("Назад ↩️", callback_data=back_callback)])
     
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")
+    
+    # Use photo for PC details
+    photo_path = utils.IMAGE_PATHS["pc"]
+    if os.path.exists(photo_path):
+        from telegram import InputMediaPhoto
+        with open(photo_path, 'rb') as photo:
+            media = InputMediaPhoto(media=photo, caption=message, parse_mode="HTML")
+            await query.edit_message_media(media=media, reply_markup=reply_markup)
+    else:
+        await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")
 
