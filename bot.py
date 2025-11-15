@@ -408,7 +408,7 @@ async def pc_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await show_pcs(update, context)
 
 
-async def show_pc_details(user_id: int, pc_card: dict, query, back_callback: str = "view_pcs"):
+async def show_pc_details(user_id: int, pc_card: dict, query, back_callback: str = "view_pcs", show_back: bool = True, title: str = None):
     """Reusable function to show PC details with eject buttons and sell option."""
     components = pc_card.get("components", [])
     specs = pc_card.get("specs", {})
@@ -422,7 +422,11 @@ async def show_pc_details(user_id: int, pc_card: dict, query, back_callback: str
     
     rarity_emoji = gadgets.get_rarity_emoji(pc_card["rarity"])
     rarity_ru = RARITY_NAMES.get(pc_card['rarity'], pc_card['rarity'])
+    
+    # Add title if provided
+    title_text = f"{title}\n\n" if title else ""
     message = (
+        f"{title_text}"
         f"{rarity_emoji} <b>{pc_card['gadget_name']}</b> ({rarity_ru})\n\n"
         f"<b>Компоненты:</b>\n"
     )
@@ -461,7 +465,8 @@ async def show_pc_details(user_id: int, pc_card: dict, query, back_callback: str
     pc_sale_price = int(component_total_with_specs * 1.15 * 0.85)  # 15% premium, then 85% when selling
     
     keyboard.append([InlineKeyboardButton(f"💰 Продать ПК ({pc_sale_price} монет)", callback_data=f"confirm_sell_pc_{pc_card['card_id']}")])
-    keyboard.append([InlineKeyboardButton("Назад ↩️", callback_data=back_callback)])
+    if show_back:
+        keyboard.append([InlineKeyboardButton("Назад ↩️", callback_data=back_callback)])
     
     reply_markup = InlineKeyboardMarkup(keyboard)
     await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")
@@ -629,9 +634,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"<b>Редкость:</b> {rarity_emoji} {rarity_ru}\n\n"
             f"ID карточки: {card_id}"
         )
-        keyboard = [[InlineKeyboardButton("Мои Карточки 📚", callback_data="view_cards")]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.message.reply_text(message, reply_markup=reply_markup, parse_mode="HTML")
+        # No buttons - cards menu only accessible via /cards command
+        await query.message.reply_text(message, parse_mode="HTML")
     
     elif data == "view_cards":
         await show_cards(update, context, query)
@@ -752,7 +756,10 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         category_ru = CATEGORY_NAMES.get(card['category'], card['category'])
         in_pc_indicator = "\n🔗 <b>Эта деталь находится в ПК</b>" if card.get("in_pc") else ""
         
+        # Add title "You got a card"
+        title = "🎴 <b>Ты получил карточку!</b> 🎉"
         message = (
+            f"{title}\n\n"
             f"{rarity_emoji} <b>{card['gadget_name']}</b>\n\n"
             f"<b>Категория:</b> {category_ru}\n"
             f"<b>Редкость:</b> {rarity_ru}\n"
@@ -763,9 +770,9 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if card.get("in_pc") is None:  # Only show sell if not in PC
             sale_price = int(card["purchase_price"] * 0.85)
             keyboard.append([InlineKeyboardButton(f"💰 Продать ({sale_price} монет)", callback_data=f"confirm_sell_{card_id}")])
-        keyboard.append([InlineKeyboardButton("Назад ↩️", callback_data="view_cards")])
+        # No back button - cards menu only accessible via /cards command
         
-        reply_markup = InlineKeyboardMarkup(keyboard)
+        reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
         await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")
     
     elif data.startswith("confirm_sell_"):
@@ -827,9 +834,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Цена продажи: {sale_price} монет (85%)\n\n"
             f"<b>Новый баланс:</b> {new_balance} монет 💰"
         )
-        keyboard = [[InlineKeyboardButton("Мои Карточки 📚", callback_data="view_cards")]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")
+        # No buttons - cards menu only accessible via /cards command
+        await query.edit_message_text(message, parse_mode="HTML")
     
     elif data.startswith("build_gpu_"):
         gpu_id = int(data.split("_")[2])
@@ -907,12 +913,10 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"• 📦 Корпус: {specs['case']}\n\n"
             f"<b>Общая Цена:</b> {total_price} монет 💰"
         )
-        keyboard = [
-            [InlineKeyboardButton("Посмотреть ПК 🖥️", callback_data=f"pc_{pc_card_id}")],
-            [InlineKeyboardButton("Мои Карточки 📚", callback_data="view_cards")]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")
+        # Show PC details with same buttons but no back button, with title
+        pc_card = database.get_card(user_id, pc_card_id)
+        title = "🖥️ <b>Твой ПК Успешно Собран!</b> 🎉"
+        await show_pc_details(user_id, pc_card, query, show_back=False, title=title)
     
     elif data.startswith("pc_"):
         pc_id = int(data.split("_")[1])
@@ -958,9 +962,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"<b>{comp_card['gadget_name']}</b> возвращена в твою коллекцию."
             )
         
-        keyboard = [[InlineKeyboardButton("Мои Карточки 📚", callback_data="view_cards")]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")
+        # No buttons - cards menu only accessible via /cards command
+        await query.edit_message_text(message, parse_mode="HTML")
     
     elif data.startswith("confirm_sell_pc_"):
         pc_id = int(data.split("_")[3])
@@ -1038,9 +1041,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Все компоненты возвращены в твою коллекцию.\n\n"
             f"<b>Новый баланс:</b> {new_balance} монет 💰"
         )
-        keyboard = [[InlineKeyboardButton("Мои Карточки 📚", callback_data="view_cards")]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")
+        # No buttons - cards menu only accessible via /cards command
+        await query.edit_message_text(message, parse_mode="HTML")
 
 
 def main():
