@@ -53,6 +53,129 @@ CATEGORY_NAMES = {
 }
 
 
+# Helper functions to reduce code duplication
+
+async def send_or_edit_message(query, message_obj, message, reply_markup=None, parse_mode="HTML"):
+    """Helper to send or edit message based on whether query exists."""
+    if query:
+        await query.edit_message_text(message, reply_markup=reply_markup, parse_mode=parse_mode)
+    else:
+        await message_obj.reply_text(message, reply_markup=reply_markup, parse_mode=parse_mode)
+
+
+def get_help_message():
+    """Get the help message text."""
+    return (
+        "📖 <b>Команды Бота</b> 🤖\n\n"
+        "<b>/start</b> - Приветствие и обзор бота\n"
+        "<b>/card</b> - Получить случайную карточку гаджета\n"
+        "<b>/cards</b> - Посмотреть свою коллекцию карточек\n"
+        "<b>/profile</b> - Посмотреть профиль и статистику\n"
+        "<b>/build</b> - Собрать кастомный ПК из деталей\n"
+        "<b>/help</b> - Показать это сообщение помощи\n\n"
+        "<b>💰 Система Монет:</b>\n"
+        "• Начинаешь с 0 монет (но это не проблема!)\n"
+        "• Зарабатывай монеты, продавая карточки\n"
+        "• При продаже получаешь 85% от оригинальной цены (комиссия 15%)\n\n"
+        "<b>🎴 Уровни Редкости:</b>\n"
+        "🗑️ Мусор → ⚪ Обычная → 🟢 Необычная → 🔵 Редкая → 🟣 Эпическая → 🟠 Легендарная → 🔴 Мифическая\n\n"
+        "<b>🖥️ Сборка ПК:</b>\n"
+        "• Собирай видеокарты, процессоры и материнки\n"
+        "• Используй /build чтобы собрать их в ПК\n"
+        "• Характеристики ПК (ОЗУ, накопитель, БП, корпус) генерируются автоматически\n"
+        "• Можешь вытащить детали из ПК в любой момент"
+    )
+
+
+def get_profile_message(user_id: int):
+    """Get the profile message for a user."""
+    user = database.get_user(user_id)
+    coins = user["coins"]
+    
+    cards = database.get_user_cards(user_id)
+    total_cards = len(cards)
+    
+    # Calculate total price of all cards and PCs
+    total_price = 0
+    for card in cards:
+        total_price += card["purchase_price"]
+    
+    # Count PCs
+    pcs = [c for c in cards if c["category"] == "PC"]
+    pc_count = len(pcs)
+    
+    return (
+        f"👤 <b>Твой Профиль</b> 🎯\n\n"
+        f"💰 <b>Монеты:</b> {coins}\n\n"
+        f"📊 <b>Статистика:</b>\n"
+        f"• Всего карточек: {total_cards} 🎴\n"
+        f"• Собранных ПК: {pc_count} 🖥️\n"
+        f"• Стоимость коллекции: {total_price} монет 💎"
+    )
+
+
+def get_start_message(coins: int):
+    """Get the start/welcome message."""
+    return (
+        "🎮 <b>Добро пожаловать в Бот Карточек Гаджетов!</b>\n\n"
+        "Собирай карточки гаджетов и собери свой ПК мечты! 🚀\n\n"
+        "<b>💰 Система Монет:</b>\n"
+        "• Начинаешь с 0 монет (но не расстраивайся!)\n"
+        "• Зарабатывай монеты, продавая карточки\n"
+        "• При продаже получаешь 85% от оригинальной цены (комиссия 15%)\n\n"
+        "<b>🎴 Система Карточек:</b>\n"
+        "• Получай случайные карточки командой /card\n"
+        "• Смотри свою коллекцию через /cards\n"
+        "• 7 уровней редкости: 🗑️ Мусор → ⚪ Обычная → 🟢 Необычная → 🔵 Редкая → 🟣 Эпическая → 🟠 Легендарная → 🔴 Мифическая\n\n"
+        "<b>🖥️ Сборка ПК:</b>\n"
+        "• Собирай видеокарты, процессоры и материнки\n"
+        "• Создавай кастомные ПК через /build\n"
+        "• Можешь вытащить детали из ПК в любой момент\n\n"
+        f"<b>Твои Монеты:</b> {coins} 💰"
+    )
+
+
+def get_card_display_message(gadget: dict, card_id: int, title: str = None):
+    """Get the card display message."""
+    rarity_emoji = gadgets.get_rarity_emoji(gadget["rarity"])
+    rarity_ru = RARITY_NAMES.get(gadget['rarity'], gadget['rarity'])
+    category_ru = CATEGORY_NAMES.get(gadget['category'], gadget['category'])
+    
+    title_text = f"{title}\n\n" if title else ""
+    return (
+        f"{title_text}"
+        f"<b>Название:</b> {gadget['name']}\n"
+        f"<b>Категория:</b> {category_ru}\n"
+        f"<b>Цена:</b> {gadget['price']} монет 💰\n"
+        f"<b>Редкость:</b> {rarity_emoji} {rarity_ru}\n\n"
+        f"ID карточки: {card_id}"
+    )
+
+
+def get_missing_parts_message(missing_parts: list):
+    """Get message for missing PC parts."""
+    if len(missing_parts) == 1:
+        return f"😢 У тебя нет {missing_parts[0]}!\n\nСначала получи карточки через /card 🎴"
+    elif len(missing_parts) == 2:
+        return f"😢 У тебя нет {missing_parts[0]} и {missing_parts[1]}!\n\nСначала получи карточки через /card 🎴"
+    else:
+        return f"😢 У тебя нет {missing_parts[0]}, {missing_parts[1]} и {missing_parts[2]}!\n\nСначала получи карточки через /card 🎴"
+
+
+def calculate_pc_sale_price(user_id: int, pc_card: dict):
+    """Calculate PC sale price (115% of component total, then 85% when selling)."""
+    components = pc_card.get("components", [])
+    component_total = 0
+    for comp_id in components:
+        comp_card = database.get_card(user_id, comp_id)
+        if comp_card:
+            component_total += comp_card["purchase_price"]
+    # Get spec price from PC price
+    spec_price = pc_card["purchase_price"] - int(component_total * 1.15)
+    component_total_with_specs = component_total + spec_price
+    return int(component_total_with_specs * 1.15 * 0.85)  # 15% premium, then 85% when selling
+
+
 async def initialize_user(application: Application):
     """Initialize gadgets for @denis0001-dev on startup."""
     try:
@@ -95,23 +218,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = database.get_user(user_id)
     coins = user["coins"]
     
-    message = (
-        "🎮 <b>Добро пожаловать в Бот Карточек Гаджетов!</b>\n\n"
-        "Собирай карточки гаджетов и собери свой ПК мечты! 🚀\n\n"
-        "<b>💰 Система Монет:</b>\n"
-        "• Начинаешь с 0 монет (но не расстраивайся!)\n"
-        "• Зарабатывай монеты, продавая карточки\n"
-        "• При продаже получаешь 85% от оригинальной цены (комиссия 15%)\n\n"
-        "<b>🎴 Система Карточек:</b>\n"
-        "• Получай случайные карточки командой /card\n"
-        "• Смотри свою коллекцию через /cards\n"
-        "• 7 уровней редкости: 🗑️ Мусор → ⚪ Обычная → 🟢 Необычная → 🔵 Редкая → 🟣 Эпическая → 🟠 Легендарная → 🔴 Мифическая\n\n"
-        "<b>🖥️ Сборка ПК:</b>\n"
-        "• Собирай видеокарты, процессоры и материнки\n"
-        "• Создавай кастомные ПК через /build\n"
-        "• Можешь вытащить детали из ПК в любой момент\n\n"
-        f"<b>Твои Монеты:</b> {coins} 💰"
-    )
+    message = get_start_message(coins)
     
     keyboard = [
         [InlineKeyboardButton("Получить Карточку 🎴", callback_data="get_card")],
@@ -160,18 +267,7 @@ async def card_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     database.update_user(user_id, last_card_time=time.time())
     
     # Display card
-    rarity_emoji = gadgets.get_rarity_emoji(gadget["rarity"])
-    rarity_ru = RARITY_NAMES.get(gadget['rarity'], gadget['rarity'])
-    category_ru = CATEGORY_NAMES.get(gadget['category'], gadget['category'])
-    
-    message = (
-        f"🎴 <b>Ты получил новую карточку!</b> 🎉\n\n"
-        f"<b>Название:</b> {gadget['name']}\n"
-        f"<b>Категория:</b> {category_ru}\n"
-        f"<b>Цена:</b> {gadget['price']} монет 💰\n"
-        f"<b>Редкость:</b> {rarity_emoji} {rarity_ru}\n\n"
-        f"ID карточки: {card_id}"
-    )
+    message = get_card_display_message(gadget, card_id, title="🎴 <b>Ты получил новую карточку!</b> 🎉")
     
     keyboard = [
         [InlineKeyboardButton("Мои Карточки 📚", callback_data="view_cards")]
@@ -202,10 +298,7 @@ async def show_cards(update: Update, context: ContextTypes.DEFAULT_TYPE, query=N
         keyboard = [[InlineKeyboardButton("Получить Карточку 🎴", callback_data="get_card")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
-        if query:
-            await query.edit_message_text(message, reply_markup=reply_markup)
-        else:
-            await message_obj.reply_text(message, reply_markup=reply_markup)
+        await send_or_edit_message(query, message_obj, message, reply_markup)
         return
     
     # Group cards by rarity (including PCs, but excluding parts that are in a PC)
@@ -237,10 +330,7 @@ async def show_cards(update: Update, context: ContextTypes.DEFAULT_TYPE, query=N
     
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    if query:
-        await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")
-    else:
-        await message_obj.reply_text(message, reply_markup=reply_markup, parse_mode="HTML")
+    await send_or_edit_message(query, message_obj, message, reply_markup)
 
 
 async def show_rarity_cards(update: Update, context: ContextTypes.DEFAULT_TYPE, query, rarity):
@@ -311,12 +401,7 @@ async def show_build_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
             missing_parts.append("материнских плат")
         
         if missing_parts:
-            if len(missing_parts) == 1:
-                message = f"😢 У тебя нет {missing_parts[0]}!\n\nСначала получи карточки через /card 🎴"
-            elif len(missing_parts) == 2:
-                message = f"😢 У тебя нет {missing_parts[0]} и {missing_parts[1]}!\n\nСначала получи карточки через /card 🎴"
-            else:
-                message = f"😢 У тебя нет {missing_parts[0]}, {missing_parts[1]} и {missing_parts[2]}!\n\nСначала получи карточки через /card 🎴"
+            message = get_missing_parts_message(missing_parts)
             
             keyboard = [
                 [InlineKeyboardButton("Получить Карточку 🎴", callback_data="get_card")],
@@ -324,10 +409,7 @@ async def show_build_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
             
-            if query:
-                await query.edit_message_text(message, reply_markup=reply_markup)
-            else:
-                await message_obj.reply_text(message, reply_markup=reply_markup)
+            await send_or_edit_message(query, message_obj, message, reply_markup)
             return
         
         # Step 1: Select GPU (all parts are available)
@@ -341,16 +423,13 @@ async def show_build_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
         keyboard.append([InlineKeyboardButton("Отмена ❌", callback_data="view_cards")])
         reply_markup = InlineKeyboardMarkup(keyboard)
         
-        if query:
-            await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")
-        else:
-            await message_obj.reply_text(message, reply_markup=reply_markup, parse_mode="HTML")
+        await send_or_edit_message(query, message_obj, message, reply_markup)
         return
     
     if not selected_cpu:
         # Step 2: Select CPU (already checked at start, but double-check in case parts were removed)
         if not parts["Processor"]:
-            message = "😢 У тебя нет процессоров!\n\nСначала получи карточки через /card 🎴"
+            message = get_missing_parts_message(["процессоров"])
             keyboard = [
                 [InlineKeyboardButton("Получить Карточку 🎴", callback_data="get_card")],
                 [InlineKeyboardButton("🔄 Попробовать снова", callback_data="build_pc")]
@@ -373,7 +452,7 @@ async def show_build_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
     
     # Step 3: Select Motherboard (already checked at start, but double-check in case parts were removed)
     if not parts["Motherboard"]:
-        message = "😢 У тебя нет материнских плат!\n\nСначала получи карточки через /card 🎴"
+        message = get_missing_parts_message(["материнских плат"])
         keyboard = [
             [InlineKeyboardButton("Получить Карточку 🎴", callback_data="get_card")],
             [InlineKeyboardButton("🔄 Попробовать снова", callback_data="build_pc")]
@@ -445,16 +524,8 @@ async def show_pc_details(user_id: int, pc_card: dict, query, back_callback: str
         comp_type = comp_types_ru[i]
         keyboard.append([InlineKeyboardButton(f"🔧 Вытащить {comp_type}: {comp_card['gadget_name'][:12]}", callback_data=f"eject_{pc_card['card_id']}_{comp_card['card_id']}")])
     
-    # Calculate PC sale price (115% of component total, then 85% when selling)
-    component_total = 0
-    for comp_id in components:
-        comp_card = database.get_card(user_id, comp_id)
-        if comp_card:
-            component_total += comp_card["purchase_price"]
-    # Get spec price from PC price
-    spec_price = pc_card["purchase_price"] - int(component_total * 1.15)
-    component_total_with_specs = component_total + spec_price
-    pc_sale_price = int(component_total_with_specs * 1.15 * 0.85)  # 15% premium, then 85% when selling
+    # Calculate PC sale price
+    pc_sale_price = calculate_pc_sale_price(user_id, pc_card)
     
     keyboard.append([InlineKeyboardButton(f"💰 Продать ПК ({pc_sale_price} монет)", callback_data=f"confirm_sell_pc_{pc_card['card_id']}")])
     if show_back:
@@ -480,10 +551,7 @@ async def show_pcs(update: Update, context: ContextTypes.DEFAULT_TYPE, query=Non
         keyboard = [[InlineKeyboardButton("Собрать ПК 🛠️", callback_data="build_pc")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
-        if query:
-            await query.edit_message_text(message, reply_markup=reply_markup)
-        else:
-            await message_obj.reply_text(message, reply_markup=reply_markup)
+        await send_or_edit_message(query, message_obj, message, reply_markup)
         return
     
     message_parts = ["🖥️ <b>Твои Собранные ПК</b> 💻\n"]
@@ -523,38 +591,13 @@ async def show_pcs(update: Update, context: ContextTypes.DEFAULT_TYPE, query=Non
     
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    if query:
-        await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")
-    else:
-        await message_obj.reply_text(message, reply_markup=reply_markup, parse_mode="HTML")
+    await send_or_edit_message(query, message_obj, message, reply_markup)
 
 
 async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /profile command."""
     user_id = update.effective_user.id
-    user = database.get_user(user_id)
-    coins = user["coins"]
-    
-    cards = database.get_user_cards(user_id)
-    total_cards = len(cards)
-    
-    # Calculate total price of all cards and PCs
-    total_price = 0
-    for card in cards:
-        total_price += card["purchase_price"]
-    
-    # Count PCs
-    pcs = [c for c in cards if c["category"] == "PC"]
-    pc_count = len(pcs)
-    
-    message = (
-        f"👤 <b>Твой Профиль</b> 🎯\n\n"
-        f"💰 <b>Монеты:</b> {coins}\n\n"
-        f"📊 <b>Статистика:</b>\n"
-        f"• Всего карточек: {total_cards} 🎴\n"
-        f"• Собранных ПК: {pc_count} 🖥️\n"
-        f"• Стоимость коллекции: {total_price} монет 💎"
-    )
+    message = get_profile_message(user_id)
     
     keyboard = [
         [InlineKeyboardButton("Мои Карточки 📚", callback_data="view_cards")],
@@ -566,26 +609,7 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /help command."""
-    message = (
-        "📖 <b>Команды Бота</b> 🤖\n\n"
-        "<b>/start</b> - Приветствие и обзор бота\n"
-        "<b>/card</b> - Получить случайную карточку гаджета\n"
-        "<b>/cards</b> - Посмотреть свою коллекцию карточек\n"
-        "<b>/profile</b> - Посмотреть профиль и статистику\n"
-        "<b>/build</b> - Собрать кастомный ПК из деталей\n"
-        "<b>/help</b> - Показать это сообщение помощи\n\n"
-        "<b>💰 Система Монет:</b>\n"
-        "• Начинаешь с 0 монет (но это не проблема!)\n"
-        "• Зарабатывай монеты, продавая карточки\n"
-        "• При продаже получаешь 85% от оригинальной цены (комиссия 15%)\n\n"
-        "<b>🎴 Уровни Редкости:</b>\n"
-        "🗑️ Мусор → ⚪ Обычная → 🟢 Необычная → 🔵 Редкая → 🟣 Эпическая → 🟠 Легендарная → 🔴 Мифическая\n\n"
-        "<b>🖥️ Сборка ПК:</b>\n"
-        "• Собирай видеокарты, процессоры и материнки\n"
-        "• Используй /build чтобы собрать их в ПК\n"
-        "• Характеристики ПК (ОЗУ, накопитель, БП, корпус) генерируются автоматически\n"
-        "• Можешь вытащить детали из ПК в любой момент"
-    )
+    message = get_help_message()
     
     keyboard = [[InlineKeyboardButton("Назад ↩️", callback_data="back_to_start")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -614,17 +638,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         database.update_user(user_id, last_card_time=time.time())
         
-        rarity_emoji = gadgets.get_rarity_emoji(gadget["rarity"])
-        rarity_ru = RARITY_NAMES.get(gadget['rarity'], gadget['rarity'])
-        category_ru = CATEGORY_NAMES.get(gadget['category'], gadget['category'])
-        message = (
-            f"🎴 <b>Ты получил новую карточку!</b> 🎉\n\n"
-            f"<b>Название:</b> {gadget['name']}\n"
-            f"<b>Категория:</b> {category_ru}\n"
-            f"<b>Цена:</b> {gadget['price']} монет 💰\n"
-            f"<b>Редкость:</b> {rarity_emoji} {rarity_ru}\n\n"
-            f"ID карточки: {card_id}"
-        )
+        message = get_card_display_message(gadget, card_id, title="🎴 <b>Ты получил новую карточку!</b> 🎉")
         # No buttons - cards menu only accessible via /cards command
         await query.message.reply_text(message, parse_mode="HTML")
     
@@ -636,29 +650,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await show_rarity_cards(update, context, query, rarity)
     
     elif data == "profile":
-        user = database.get_user(user_id)
-        coins = user["coins"]
-        
-        cards = database.get_user_cards(user_id)
-        total_cards = len(cards)
-        
-        # Calculate total price of all cards and PCs
-        total_price = 0
-        for card in cards:
-            total_price += card["purchase_price"]
-        
-        # Count PCs
-        pcs = [c for c in cards if c["category"] == "PC"]
-        pc_count = len(pcs)
-        
-        message = (
-            f"👤 <b>Твой Профиль</b> 🎯\n\n"
-            f"💰 <b>Монеты:</b> {coins}\n\n"
-            f"📊 <b>Статистика:</b>\n"
-            f"• Всего карточек: {total_cards} 🎴\n"
-            f"• Собранных ПК: {pc_count} 🖥️\n"
-            f"• Стоимость коллекции: {total_price} монет 💎"
-        )
+        message = get_profile_message(user_id)
         
         keyboard = [
             [InlineKeyboardButton("Мои Карточки 📚", callback_data="view_cards")],
@@ -674,26 +666,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await show_pcs(update, context, query)
     
     elif data == "help":
-        message = (
-            "📖 <b>Команды Бота</b> 🤖\n\n"
-            "<b>/start</b> - Приветствие и обзор бота\n"
-            "<b>/card</b> - Получить случайную карточку гаджета\n"
-            "<b>/cards</b> - Посмотреть свою коллекцию карточек\n"
-            "<b>/profile</b> - Посмотреть профиль и статистику\n"
-            "<b>/build</b> - Собрать кастомный ПК из деталей\n"
-            "<b>/help</b> - Показать это сообщение помощи\n\n"
-            "<b>💰 Система Монет:</b>\n"
-            "• Начинаешь с 0 монет (но это не проблема!)\n"
-            "• Зарабатывай монеты, продавая карточки\n"
-            "• При продаже получаешь 85% от оригинальной цены (комиссия 15%)\n\n"
-            "<b>🎴 Уровни Редкости:</b>\n"
-            "🗑️ Мусор → ⚪ Обычная → 🟢 Необычная → 🔵 Редкая → 🟣 Эпическая → 🟠 Легендарная → 🔴 Мифическая\n\n"
-            "<b>🖥️ Сборка ПК:</b>\n"
-            "• Собирай видеокарты, процессоры и материнки\n"
-            "• Используй /build чтобы собрать их в ПК\n"
-            "• Характеристики ПК (ОЗУ, накопитель, БП, корпус) генерируются автоматически\n"
-            "• Можешь вытащить детали из ПК в любой момент"
-        )
+        message = get_help_message()
         keyboard = [[InlineKeyboardButton("Назад ↩️", callback_data="back_to_start")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
         await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")
@@ -701,23 +674,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "back_to_start":
         user = database.get_user(user_id)
         coins = user["coins"]
-        message = (
-            "🎮 <b>Добро пожаловать в Бот Карточек Гаджетов!</b>\n\n"
-            "Собирай карточки гаджетов и собери свой мечтательный ПК! 🚀\n\n"
-            "<b>💰 Система Монет:</b>\n"
-            "• Начинаешь с 0 монет (но не расстраивайся!)\n"
-            "• Зарабатывай монеты, продавая карточки\n"
-            "• При продаже получаешь 85% от оригинальной цены (комиссия 15%)\n\n"
-            "<b>🎴 Система Карточек:</b>\n"
-            "• Получай случайные карточки командой /card\n"
-            "• Смотри свою коллекцию через /cards\n"
-            "• 7 уровней редкости: 🗑️ Мусор → ⚪ Обычная → 🟢 Необычная → 🔵 Редкая → 🟣 Эпическая → 🟠 Легендарная → 🔴 Мифическая\n\n"
-            "<b>🖥️ Сборка ПК:</b>\n"
-            "• Собирай видеокарты, процессоры и материнки\n"
-            "• Создавай кастомные ПК через /build\n"
-            "• Можешь вытащить детали из ПК в любой момент\n\n"
-            f"<b>Твои Монеты:</b> {coins} 💰"
-        )
+        message = get_start_message(coins)
         keyboard = [
             [InlineKeyboardButton("Получить Карточку 🎴", callback_data="get_card")],
             [InlineKeyboardButton("Мои Карточки 📚", callback_data="view_cards")],
@@ -963,17 +920,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.answer("ПК не найден! 😢", show_alert=True)
             return
         
-        # Calculate PC sale price (115% of component total, then 85% when selling)
-        components = pc_card.get("components", [])
-        component_total = 0
-        for comp_id in components:
-            comp_card = database.get_card(user_id, comp_id)
-            if comp_card:
-                component_total += comp_card["purchase_price"]
-        # Get spec price from PC price
-        spec_price = pc_card["purchase_price"] - int(component_total * 1.15)
-        component_total_with_specs = component_total + spec_price
-        pc_sale_price = int(component_total_with_specs * 1.15 * 0.85)  # 15% premium, then 85% when selling
+        # Calculate PC sale price
+        pc_sale_price = calculate_pc_sale_price(user_id, pc_card)
         
         rarity_emoji = gadgets.get_rarity_emoji(pc_card["rarity"])
         message = (
@@ -1000,19 +948,11 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.answer("ПК не найден! 😢", show_alert=True)
             return
         
-        # Calculate PC sale price (115% of component total, then 85% when selling)
-        components = pc_card.get("components", [])
-        component_total = 0
-        for comp_id in components:
-            comp_card = database.get_card(user_id, comp_id)
-            if comp_card:
-                component_total += comp_card["purchase_price"]
-        # Get spec price from PC price
-        spec_price = pc_card["purchase_price"] - int(component_total * 1.15)
-        component_total_with_specs = component_total + spec_price
-        sale_price = int(component_total_with_specs * 1.15 * 0.85)  # 15% premium, then 85% when selling
+        # Calculate PC sale price
+        sale_price = calculate_pc_sale_price(user_id, pc_card)
         
         # Eject all components first
+        components = pc_card.get("components", [])
         for comp_id in components:
             database.update_card(user_id, comp_id, in_pc=None)
         
