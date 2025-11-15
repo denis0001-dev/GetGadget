@@ -129,8 +129,8 @@ export function Profile() {
                     <List>
                         {Object.entries(categoryCounts)
                             .filter(([_, count]) => count > 0)
-                            .map(([category, count]) => (
-                                <Cell key={category}>
+                            .map(([category, count], index) => (
+                                <Cell key={category} index={index}>
                                     <div>
                                         <div style={{ fontWeight: '500', marginBottom: '4px' }}>
                                             {category}

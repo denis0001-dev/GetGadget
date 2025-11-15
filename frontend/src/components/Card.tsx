@@ -1,13 +1,15 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { getTelegramTheme } from '../telegram';
 
 interface CardProps {
     children: React.ReactNode;
     onClick?: () => void;
     style?: React.CSSProperties;
+    index?: number;
 }
 
-export function Card({ children, onClick, style }: CardProps) {
+export function Card({ children, onClick, style, index = 0 }: CardProps) {
     const theme = getTelegramTheme();
   
     const cardStyle: React.CSSProperties = {
@@ -17,40 +19,26 @@ export function Card({ children, onClick, style }: CardProps) {
         marginBottom: '12px',
         border: theme.isDark ? '1px solid #2c2c2e' : '1px solid #e5e5e7',
         cursor: onClick ? 'pointer' : 'default',
-        transition: 'transform 0.1s, opacity 0.1s',
         ...style,
     };
 
-    const handleClick = () => {
-        if (onClick) {
-            onClick();
-        }
-    };
-
-    const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (onClick) {
-            e.currentTarget.style.transform = 'scale(0.98)';
-            e.currentTarget.style.opacity = '0.8';
-        }
-    };
-
-    const handleMouseUp = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (onClick) {
-            e.currentTarget.style.transform = 'scale(1)';
-            e.currentTarget.style.opacity = '1';
-        }
-    };
-
     return (
-        <div
-            onClick={handleClick}
-            onMouseDown={handleMouseDown}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
+        <motion.div
+            onClick={onClick}
             style={cardStyle}
+            whileHover={onClick ? { scale: 1.02, y: -2 } : {}}
+            whileTap={onClick ? { scale: 0.98 } : {}}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+                type: "spring",
+                stiffness: 300,
+                damping: 25,
+                delay: index * 0.05,
+            }}
         >
             {children}
-        </div>
+        </motion.div>
     );
 }
 

@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { getTelegramTheme } from '../telegram';
 import { Button } from './Button';
 
@@ -36,15 +37,12 @@ export function Modal({
         };
     }, [isOpen]);
 
-    if (!isOpen) return null;
-
     const overlayStyle: React.CSSProperties = {
         position: 'fixed',
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -69,38 +67,73 @@ export function Modal({
     };
 
     return (
-        <div style={overlayStyle} onClick={handleOverlayClick}>
-            <div style={modalStyle}>
-                {title && (
-                    <h2
-                        style={{
-                            marginTop: 0,
-                            marginBottom: '16px',
-                            fontSize: '20px',
-                            fontWeight: '600',
-                            color: theme.isDark ? '#ffffff' : '#000000',
+        <AnimatePresence>
+            {isOpen && (
+                <motion.div
+                    style={overlayStyle}
+                    onClick={handleOverlayClick}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                >
+                    <motion.div
+                        style={modalStyle}
+                        initial={{ scale: 0.8, opacity: 0, y: 20 }}
+                        animate={{ scale: 1, opacity: 1, y: 0 }}
+                        exit={{ scale: 0.8, opacity: 0, y: 20 }}
+                        transition={{
+                            type: "spring",
+                            stiffness: 300,
+                            damping: 25,
                         }}
+                        onClick={(e) => e.stopPropagation()}
                     >
-                        {title}
-                    </h2>
-                )}
-                <div style={{ marginBottom: '20px', color: theme.isDark ? '#ffffff' : '#000000' }}>
-                    {children}
-                </div>
-                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                    {onCancel && (
-                        <Button variant="secondary" onClick={onCancel || onClose}>
-                            {cancelText}
-                        </Button>
-                    )}
-                    {onConfirm && (
-                        <Button variant="primary" onClick={onConfirm}>
-                            {confirmText}
-                        </Button>
-                    )}
-                </div>
-            </div>
-        </div>
+                        {title && (
+                            <motion.h2
+                                style={{
+                                    marginTop: 0,
+                                    marginBottom: '16px',
+                                    fontSize: '20px',
+                                    fontWeight: '600',
+                                    color: theme.isDark ? '#ffffff' : '#000000',
+                                }}
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.1 }}
+                            >
+                                {title}
+                            </motion.h2>
+                        )}
+                        <motion.div
+                            style={{ marginBottom: '20px', color: theme.isDark ? '#ffffff' : '#000000' }}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.15 }}
+                        >
+                            {children}
+                        </motion.div>
+                        <motion.div
+                            style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2 }}
+                        >
+                            {onCancel && (
+                                <Button variant="secondary" onClick={onCancel || onClose}>
+                                    {cancelText}
+                                </Button>
+                            )}
+                            {onConfirm && (
+                                <Button variant="primary" onClick={onConfirm}>
+                                    {confirmText}
+                                </Button>
+                            )}
+                        </motion.div>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
     );
 }
 

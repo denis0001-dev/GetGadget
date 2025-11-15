@@ -61,8 +61,8 @@ export function Trade() {
                         </div>
                     ) : (
                         <List>
-                            {offers.incoming?.map((offer: any) => (
-                                <Cell key={offer.offer_id} multiline>
+                            {offers.incoming?.map((offer: any, index: number) => (
+                                <Cell key={offer.offer_id} multiline index={index}>
                                     <div>
                                         <div style={{ fontWeight: '500', marginBottom: '4px' }}>
                                             От пользователя: {offer.from_user_id}
@@ -104,8 +104,8 @@ export function Trade() {
                         </div>
                     ) : (
                         <List>
-                            {offers.outgoing?.map((offer: any) => (
-                                <Cell key={offer.offer_id} multiline>
+                            {offers.outgoing?.map((offer: any, index: number) => (
+                                <Cell key={offer.offer_id} multiline index={index}>
                                     <div>
                                         <div style={{ fontWeight: '500', marginBottom: '4px' }}>
                                             Пользователю: {offer.to_user_id}

@@ -127,6 +127,7 @@ export function PCDetails() {
                             <Cell
                                 key={comp.card_id}
                                 before={componentTypes[idx]}
+                                index={idx}
                                 after={
                                     <Button
                                         onClick={() => handleEject(comp.card_id)}

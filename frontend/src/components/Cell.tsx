@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { getTelegramTheme } from '../telegram';
 
 interface CellProps {
@@ -8,6 +9,7 @@ interface CellProps {
     onClick?: () => void;
     multiline?: boolean;
     style?: React.CSSProperties;
+    index?: number;
 }
 
 export function Cell({
@@ -17,6 +19,7 @@ export function Cell({
     onClick,
     multiline = false,
     style,
+    index = 0,
 }: CellProps) {
     const theme = getTelegramTheme();
   
@@ -39,19 +42,42 @@ export function Cell({
     };
 
     return (
-        <div onClick={onClick} style={cellStyle}>
+        <motion.div
+            onClick={onClick}
+            style={cellStyle}
+            whileHover={onClick ? { backgroundColor: theme.isDark ? '#2c2c2e' : '#f5f5f5' } : {}}
+            whileTap={onClick ? { scale: 0.98 } : {}}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{
+                type: "spring",
+                stiffness: 300,
+                damping: 25,
+                delay: index * 0.03,
+            }}
+        >
             {before && (
-                <div style={{ marginRight: '12px', display: 'flex', alignItems: 'center' }}>
+                <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: index * 0.03 + 0.1, type: "spring", stiffness: 200 }}
+                    style={{ marginRight: '12px', display: 'flex', alignItems: 'center' }}
+                >
                     {before}
-                </div>
+                </motion.div>
             )}
             <div style={contentStyle}>{children}</div>
             {after && (
-                <div style={{ marginLeft: '12px', display: 'flex', alignItems: 'center' }}>
+                <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: index * 0.03 + 0.15, type: "spring", stiffness: 200 }}
+                    style={{ marginLeft: '12px', display: 'flex', alignItems: 'center' }}
+                >
                     {after}
-                </div>
+                </motion.div>
             )}
-        </div>
+        </motion.div>
     );
 }
 

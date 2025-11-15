@@ -63,10 +63,11 @@ export function PCs() {
             <Header>🖥️ Мои ПК</Header>
             <div style={{ padding: '16px' }}>
                 <List>
-                    {pcs.map((pc) => (
+                    {pcs.map((pc, index) => (
                         <Cell
                             key={pc.card_id}
                             onClick={() => navigate(`/pcs/${pc.card_id}`)}
+                            index={index}
                             after="→"
                         >
                             <div>

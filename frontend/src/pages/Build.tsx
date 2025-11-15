@@ -108,7 +108,7 @@ export function Build() {
                             Шаг 1: Выберите видеокарту
                         </div>
                         <List>
-                            {parts['Graphics Card'].map((gpu: any) => (
+                            {parts['Graphics Card'].map((gpu: any, index: number) => (
                                 <Cell
                                     key={gpu.card_id}
                                     onClick={() => {
@@ -116,6 +116,7 @@ export function Build() {
                                         setStep('cpu');
                                     }}
                                     after="→"
+                                    index={index}
                                 >
                                     <div>
                                         <div style={{ fontWeight: '500', marginBottom: '4px' }}>
@@ -153,7 +154,7 @@ export function Build() {
                             </div>
                         )}
                         <List>
-                            {parts['Processor'].map((cpu: any) => (
+                            {parts['Processor'].map((cpu: any, index: number) => (
                                 <Cell
                                     key={cpu.card_id}
                                     onClick={() => {
@@ -161,6 +162,7 @@ export function Build() {
                                         setStep('mb');
                                     }}
                                     after="→"
+                                    index={index}
                                 >
                                     <div>
                                         <div style={{ fontWeight: '500', marginBottom: '4px' }}>
@@ -200,10 +202,11 @@ export function Build() {
                             <div>Процессор: {getSelectedPartName(selectedCPU, 'Processor')}</div>
                         </div>
                         <List>
-                            {parts['Motherboard'].map((mb: any) => (
+                            {parts['Motherboard'].map((mb: any, index: number) => (
                                 <Cell
                                     key={mb.card_id}
                                     onClick={() => setSelectedMB(mb.card_id)}
+                                    index={index}
                                     after={selectedMB === mb.card_id ? '✓' : undefined}
                                     style={{
                                         backgroundColor: selectedMB === mb.card_id 

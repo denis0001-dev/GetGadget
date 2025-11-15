@@ -81,11 +81,12 @@ export function Collection() {
                     </div>
                 ) : (
                     <List>
-                        {filteredCards.map((card) => (
+                        {filteredCards.map((card, index) => (
                             <Cell
                                 key={card.card_id}
                                 onClick={() => navigate(`/collection/${card.card_id}`)}
                                 after="→"
+                                index={index}
                             >
                                 <div>
                                     <div style={{ fontWeight: '500', marginBottom: '4px' }}>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { getTelegramTheme } from '../telegram';
 
 interface ButtonProps {
@@ -27,9 +28,7 @@ export function Button({
         border: 'none',
         borderRadius: '12px',
         cursor: disabled ? 'not-allowed' : 'pointer',
-        transition: 'opacity 0.2s',
         width: fullWidth ? '100%' : 'auto',
-        opacity: disabled ? 0.5 : 1,
         ...style,
     };
 
@@ -49,12 +48,23 @@ export function Button({
     };
 
     return (
-        <button
+        <motion.button
             onClick={disabled ? undefined : onClick}
             style={{ ...baseStyle, ...variantStyles[variant] }}
+            whileHover={disabled ? {} : { scale: 1.02, y: -1 }}
+            whileTap={disabled ? {} : { scale: 0.98 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: disabled ? 0.5 : 1, y: 0 }}
+            transition={{ 
+                type: "spring", 
+                stiffness: 300, 
+                damping: 20,
+                opacity: { duration: 0.2 }
+            }}
+            disabled={disabled}
         >
             {children}
-        </button>
+        </motion.button>
     );
 }
 

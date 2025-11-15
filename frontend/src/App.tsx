@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { initTelegram, getTelegramUser, getTelegramTheme } from './telegram';
 import { Home } from './pages/Home';
 import { Collection } from './pages/Collection';
@@ -52,19 +53,157 @@ export function App() {
                 backgroundColor: theme.backgroundColor,
                 color: theme.textColor
             }}>
-                <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/collection" element={<Collection />} />
-                    <Route path="/collection/:cardId" element={<CardDetails />} />
-                    <Route path="/build" element={<Build />} />
-                    <Route path="/pcs" element={<PCs />} />
-                    <Route path="/pcs/:pcId" element={<PCDetails />} />
-                    <Route path="/trade" element={<Trade />} />
-                    <Route path="/profile" element={<Profile />} />
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
+                <AnimatedRoutes />
             </div>
         </BrowserRouter>
+    );
+}
+
+function AnimatedRoutes() {
+    const location = useLocation();
+
+    const pageVariants = {
+        initial: {
+            opacity: 0,
+            y: 20,
+            scale: 0.98,
+        },
+        animate: {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+        },
+        exit: {
+            opacity: 0,
+            y: -20,
+            scale: 0.98,
+        },
+    };
+
+    const pageTransition = {
+        type: "spring",
+        stiffness: 300,
+        damping: 30,
+    };
+
+    return (
+        <AnimatePresence mode="wait">
+            <Routes location={location} key={location.pathname}>
+                <Route
+                    path="/"
+                    element={
+                        <motion.div
+                            variants={pageVariants}
+                            initial="initial"
+                            animate="animate"
+                            exit="exit"
+                            transition={pageTransition}
+                        >
+                            <Home />
+                        </motion.div>
+                    }
+                />
+                <Route
+                    path="/collection"
+                    element={
+                        <motion.div
+                            variants={pageVariants}
+                            initial="initial"
+                            animate="animate"
+                            exit="exit"
+                            transition={pageTransition}
+                        >
+                            <Collection />
+                        </motion.div>
+                    }
+                />
+                <Route
+                    path="/collection/:cardId"
+                    element={
+                        <motion.div
+                            variants={pageVariants}
+                            initial="initial"
+                            animate="animate"
+                            exit="exit"
+                            transition={pageTransition}
+                        >
+                            <CardDetails />
+                        </motion.div>
+                    }
+                />
+                <Route
+                    path="/build"
+                    element={
+                        <motion.div
+                            variants={pageVariants}
+                            initial="initial"
+                            animate="animate"
+                            exit="exit"
+                            transition={pageTransition}
+                        >
+                            <Build />
+                        </motion.div>
+                    }
+                />
+                <Route
+                    path="/pcs"
+                    element={
+                        <motion.div
+                            variants={pageVariants}
+                            initial="initial"
+                            animate="animate"
+                            exit="exit"
+                            transition={pageTransition}
+                        >
+                            <PCs />
+                        </motion.div>
+                    }
+                />
+                <Route
+                    path="/pcs/:pcId"
+                    element={
+                        <motion.div
+                            variants={pageVariants}
+                            initial="initial"
+                            animate="animate"
+                            exit="exit"
+                            transition={pageTransition}
+                        >
+                            <PCDetails />
+                        </motion.div>
+                    }
+                />
+                <Route
+                    path="/trade"
+                    element={
+                        <motion.div
+                            variants={pageVariants}
+                            initial="initial"
+                            animate="animate"
+                            exit="exit"
+                            transition={pageTransition}
+                        >
+                            <Trade />
+                        </motion.div>
+                    }
+                />
+                <Route
+                    path="/profile"
+                    element={
+                        <motion.div
+                            variants={pageVariants}
+                            initial="initial"
+                            animate="animate"
+                            exit="exit"
+                            transition={pageTransition}
+                        >
+                            <Profile />
+                        </motion.div>
+                    }
+                />
+                <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+        </AnimatePresence>
     );
 }
 
