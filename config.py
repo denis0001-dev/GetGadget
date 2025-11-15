@@ -47,3 +47,30 @@ CATEGORY_NAMES = {
 # Rarity order (from lowest to highest)
 RARITY_ORDER = ["Trash", "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic"]
 
+# Gadget type groups
+GADGET_TYPE_GROUPS = {
+    "phones": {
+        "name": "📱 Телефоны",
+        "categories": ["Phone"]
+    },
+    "tablets": {
+        "name": "📱 Планшеты",
+        "categories": ["Tablet"]
+    },
+    "pcs": {
+        "name": "🖥️ ПК",
+        "categories": ["PC"]
+    },
+    "pc_parts": {
+        "name": "🔧 Комплектующие ПК",
+        "categories": ["Graphics Card", "Processor", "Motherboard"]
+    },
+    "laptops": {
+        "name": "💻 Ноутбуки",
+        "categories": ["Laptop"]
+    }
+}
+
+# Gadget type order
+GADGET_TYPE_ORDER = ["phones", "tablets", "pcs", "pc_parts", "laptops"]
+

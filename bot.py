@@ -33,7 +33,7 @@ def main():
     # Add command handlers
     application.add_handler(CommandHandler("start", commands.start_command))
     application.add_handler(CommandHandler("card", commands.card_command))
-    application.add_handler(CommandHandler("cards", commands.cards_command))
+    application.add_handler(CommandHandler("gadgets", commands.gadgets_command))
     application.add_handler(CommandHandler("profile", commands.profile_command))
     application.add_handler(CommandHandler("build", commands.build_command))
     application.add_handler(CommandHandler("help", commands.help_command))

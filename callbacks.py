@@ -11,7 +11,7 @@ import database
 import pc_generator
 import messages
 import utils
-from commands import show_cards, show_rarity_cards, show_build_menu, show_pcs, show_pc_details
+from commands import show_gadgets, show_gadget_type_rarities, show_gadget_type_rarity_cards, show_build_menu, show_pcs, show_pc_details
 from config import RARITY_NAMES, CATEGORY_NAMES
 
 
@@ -40,18 +40,29 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # No buttons - cards menu only accessible via /cards command
         await query.message.reply_text(message, parse_mode="HTML")
     
-    elif data == "view_cards":
-        await show_cards(update, context, query)
+    elif data == "view_gadgets":
+        await show_gadgets(update, context, query)
     
-    elif data.startswith("rarity_"):
-        rarity = data.split("_", 1)[1]
-        await show_rarity_cards(update, context, query, rarity)
+    elif data.startswith("gadget_type_"):
+        if data.startswith("gadget_type_rarity_"):
+            # Format: gadget_type_rarity_{type}_{rarity}
+            # Example: gadget_type_rarity_phones_Common
+            parts = data.split("_", 4)
+            if len(parts) >= 5:
+                gadget_type = parts[3]
+                rarity = "_".join(parts[4:])  # Handle multi-word rarities (though we don't have any)
+                await show_gadget_type_rarity_cards(update, context, query, gadget_type, rarity)
+        else:
+            # Format: gadget_type_{type}
+            # Example: gadget_type_phones
+            gadget_type = data.split("_", 2)[2]
+            await show_gadget_type_rarities(update, context, query, gadget_type)
     
     elif data == "profile":
         message = messages.get_profile_message(user_id)
         
         keyboard = [
-            [InlineKeyboardButton("Мои Карточки 📚", callback_data="view_cards")],
+            [InlineKeyboardButton("Мои Гаджеты 📚", callback_data="view_gadgets")],
             [InlineKeyboardButton("Назад ↩️", callback_data="back_to_start")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -75,7 +86,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         message = messages.get_start_message(coins)
         keyboard = [
             [InlineKeyboardButton("Получить Карточку 🎴", callback_data="get_card")],
-            [InlineKeyboardButton("Мои Карточки 📚", callback_data="view_cards")],
+            [InlineKeyboardButton("Мои Гаджеты 📚", callback_data="view_gadgets")],
             [InlineKeyboardButton("Профиль 👤", callback_data="profile")],
             [InlineKeyboardButton("Собрать ПК 🖥️", callback_data="build_pc")],
             [InlineKeyboardButton("Помощь ❓", callback_data="help")]
@@ -93,7 +104,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         # If it's a PC, use the PC details view
         if card["category"] == "PC":
-            await show_pc_details(user_id, card, query, back_callback="view_cards")
+            await show_pc_details(user_id, card, query, back_callback="view_gadgets")
             return
         
         rarity_emoji = gadgets.get_rarity_emoji(card["rarity"])
@@ -115,7 +126,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if card.get("in_pc") is None:  # Only show sell if not in PC
             sale_price = int(card["purchase_price"] * 0.85)
             keyboard.append([InlineKeyboardButton(f"💰 Продать ({sale_price} монет)", callback_data=f"confirm_sell_{card_id}")])
-        # No back button - cards menu only accessible via /cards command
+        # No back button - gadgets menu only accessible via /gadgets command
         
         reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
         await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")

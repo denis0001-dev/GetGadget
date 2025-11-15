@@ -10,7 +10,7 @@ import gadgets
 import database
 import messages
 import utils
-from config import RARITY_NAMES, RARITY_ORDER
+from config import RARITY_NAMES, RARITY_ORDER, GADGET_TYPE_GROUPS, GADGET_TYPE_ORDER
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -30,7 +30,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     keyboard = [
         [InlineKeyboardButton("Получить Карточку 🎴", callback_data="get_card")],
-        [InlineKeyboardButton("Мои Карточки 📚", callback_data="view_cards")],
+        [InlineKeyboardButton("Мои Гаджеты 📚", callback_data="view_gadgets")],
         [InlineKeyboardButton("Профиль 👤", callback_data="profile")],
         [InlineKeyboardButton("Собрать ПК 🖥️", callback_data="build_pc")],
         [InlineKeyboardButton("Помощь ❓", callback_data="help")]
@@ -85,13 +85,15 @@ async def card_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(message, reply_markup=reply_markup, parse_mode="HTML")
 
 
-async def cards_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle /cards command."""
-    await show_cards(update, context)
+async def gadgets_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /gadgets command."""
+    await show_gadgets(update, context)
 
 
-async def show_cards(update: Update, context: ContextTypes.DEFAULT_TYPE, query=None):
-    """Show user's cards grouped by rarity."""
+async def show_gadgets(update: Update, context: ContextTypes.DEFAULT_TYPE, query=None):
+    """Show gadget types menu."""
+    from config import GADGET_TYPE_GROUPS, GADGET_TYPE_ORDER
+    
     if query:
         user_id = query.from_user.id
         message_obj = query.message
@@ -102,26 +104,71 @@ async def show_cards(update: Update, context: ContextTypes.DEFAULT_TYPE, query=N
     cards = database.get_user_cards(user_id)
     
     if not cards:
-        message = "📭 У тебя пока нет карточек!\n\nИспользуй /card чтобы получить свою первую карточку! 🎴"
+        message = "📭 У тебя пока нет гаджетов!\n\nИспользуй /card чтобы получить свою первую карточку! 🎴"
         keyboard = [[InlineKeyboardButton("Получить Карточку 🎴", callback_data="get_card")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
         await utils.send_or_edit_message(query, message_obj, message, reply_markup)
         return
     
-    # Group cards by rarity (including PCs, but excluding parts that are in a PC)
-    cards_by_rarity = {}
+    # Count cards by type (excluding parts in PC)
+    type_counts = {}
     for card in cards:
-        # Skip parts that are in a PC (they're only visible when viewing the PC)
         if card.get("in_pc") is not None:
             continue
+        category = card["category"]
+        for type_key, type_info in GADGET_TYPE_GROUPS.items():
+            if category in type_info["categories"]:
+                type_counts[type_key] = type_counts.get(type_key, 0) + 1
+                break
+    
+    message = "📚 <b>Твоя Коллекция Гаджетов</b> 🎴\n\nВыбери тип гаджета:"
+    
+    # Create keyboard with buttons for each gadget type
+    keyboard = []
+    for type_key in GADGET_TYPE_ORDER:
+        if type_key in type_counts:
+            type_info = GADGET_TYPE_GROUPS[type_key]
+            count = type_counts[type_key]
+            button_text = f"{type_info['name']} ({count})"
+            keyboard.append([InlineKeyboardButton(button_text, callback_data=f"gadget_type_{type_key}")])
+    
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await utils.send_or_edit_message(query, message_obj, message, reply_markup)
+
+
+async def show_gadget_type_rarities(update: Update, context: ContextTypes.DEFAULT_TYPE, query, gadget_type: str):
+    """Show rarities for a specific gadget type."""
+    from config import GADGET_TYPE_GROUPS, RARITY_ORDER, RARITY_NAMES
+    
+    user_id = query.from_user.id
+    cards = database.get_user_cards(user_id)
+    
+    type_info = GADGET_TYPE_GROUPS.get(gadget_type)
+    if not type_info:
+        await query.answer("Неизвестный тип гаджета! 😢", show_alert=True)
+        return
+    
+    # Filter cards by type (excluding parts in PC)
+    type_cards = [
+        card for card in cards 
+        if card["category"] in type_info["categories"] and card.get("in_pc") is None
+    ]
+    
+    if not type_cards:
+        await query.answer(f"Нет гаджетов типа {type_info['name']}! 😢", show_alert=True)
+        return
+    
+    # Group by rarity
+    cards_by_rarity = {}
+    for card in type_cards:
         rarity = card["rarity"]
         if rarity not in cards_by_rarity:
             cards_by_rarity[rarity] = []
         cards_by_rarity[rarity].append(card)
     
-    # Simple title message with padding to prevent button cropping
-    message = "📚 <b>Твоя Коллекция Карточек</b> 🎴\n\nВыбери редкость чтобы посмотреть карточки:"
+    message = f"{type_info['name']}\n\nВыбери редкость:"
     
     # Create keyboard with buttons for each rarity
     keyboard = []
@@ -131,36 +178,48 @@ async def show_cards(update: Update, context: ContextTypes.DEFAULT_TYPE, query=N
             rarity_ru = RARITY_NAMES.get(rarity, rarity)
             count = len(cards_by_rarity[rarity])
             button_text = f"{rarity_emoji} {rarity_ru} ({count})"
-            keyboard.append([InlineKeyboardButton(button_text, callback_data=f"rarity_{rarity}")])
+            keyboard.append([InlineKeyboardButton(button_text, callback_data=f"gadget_type_rarity_{gadget_type}_{rarity}")])
+    
+    keyboard.append([InlineKeyboardButton("Назад ↩️", callback_data="view_gadgets")])
     
     reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")
+
+
+async def show_gadget_type_rarity_cards(update: Update, context: ContextTypes.DEFAULT_TYPE, query, gadget_type: str, rarity: str):
+    """Show cards of a specific gadget type and rarity."""
+    from config import GADGET_TYPE_GROUPS, RARITY_NAMES
     
-    await utils.send_or_edit_message(query, message_obj, message, reply_markup)
-
-
-async def show_rarity_cards(update: Update, context: ContextTypes.DEFAULT_TYPE, query, rarity):
-    """Show cards of a specific rarity."""
     user_id = query.from_user.id
     cards = database.get_user_cards(user_id)
     
-    # Filter cards by rarity, but exclude parts that are in a PC
-    rarity_cards = [card for card in cards if card["rarity"] == rarity and card.get("in_pc") is None]
+    type_info = GADGET_TYPE_GROUPS.get(gadget_type)
+    if not type_info:
+        await query.answer("Неизвестный тип гаджета! 😢", show_alert=True)
+        return
     
-    if not rarity_cards:
-        await query.answer("Нет карточек этой редкости! 😢", show_alert=True)
+    # Filter cards by type and rarity (excluding parts in PC)
+    filtered_cards = [
+        card for card in cards 
+        if card["category"] in type_info["categories"] 
+        and card["rarity"] == rarity 
+        and card.get("in_pc") is None
+    ]
+    
+    if not filtered_cards:
+        await query.answer("Нет гаджетов этой редкости! 😢", show_alert=True)
         return
     
     rarity_emoji = gadgets.get_rarity_emoji(rarity)
     rarity_ru = RARITY_NAMES.get(rarity, rarity)
     
-    # Simple title message with padding to prevent button cropping
-    count = len(rarity_cards)
-    message = f"{rarity_emoji} <b>{rarity_ru}</b> 🎴\n\nВсего карточек: {count}\n\nВыбери карточку для просмотра:"
+    count = len(filtered_cards)
+    message = f"{type_info['name']} - {rarity_emoji} {rarity_ru}\n\nВсего: {count}\n\nВыбери гаджет:"
     
-    # Create keyboard with buttons for all available cards (not in PC)
+    # Create keyboard with buttons for all cards
     keyboard = []
     row = []
-    for card in rarity_cards:
+    for card in filtered_cards:
         card_emoji = "🖥️" if card["category"] == "PC" else rarity_emoji
         button_text = f"{card_emoji} {card['gadget_name'][:15]}"
         if len(button_text) > 20:
@@ -173,7 +232,7 @@ async def show_rarity_cards(update: Update, context: ContextTypes.DEFAULT_TYPE, 
     if row:
         keyboard.append(row)
     
-    keyboard.append([InlineKeyboardButton("Назад ↩️", callback_data="view_cards")])
+    keyboard.append([InlineKeyboardButton("Назад ↩️", callback_data=f"gadget_type_{gadget_type}")])
     
     reply_markup = InlineKeyboardMarkup(keyboard)
     await query.edit_message_text(message, reply_markup=reply_markup, parse_mode="HTML")
@@ -185,7 +244,7 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = messages.get_profile_message(user_id)
     
     keyboard = [
-        [InlineKeyboardButton("Мои Карточки 📚", callback_data="view_cards")],
+        [InlineKeyboardButton("Мои Гаджеты 📚", callback_data="view_gadgets")],
         [InlineKeyboardButton("Назад ↩️", callback_data="back_to_start")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -248,7 +307,7 @@ async def show_build_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
             rarity_emoji = gadgets.get_rarity_emoji(card["rarity"])
             button_text = f"{rarity_emoji} {card['gadget_name']}"
             keyboard.append([InlineKeyboardButton(button_text, callback_data=f"build_gpu_{card['card_id']}")])
-        keyboard.append([InlineKeyboardButton("Отмена ❌", callback_data="view_cards")])
+        keyboard.append([InlineKeyboardButton("Отмена ❌", callback_data="view_gadgets")])
         reply_markup = InlineKeyboardMarkup(keyboard)
         
         await utils.send_or_edit_message(query, message_obj, message, reply_markup)
@@ -359,14 +418,14 @@ async def show_pcs(update: Update, context: ContextTypes.DEFAULT_TYPE, query=Non
     keyboard = []
     for pc in pcs:
         keyboard.append([InlineKeyboardButton(f"⚙️ {pc['gadget_name'][:18]}", callback_data=f"pc_{pc['card_id']}")])
-    keyboard.append([InlineKeyboardButton("Назад ↩️", callback_data="view_cards")])
+    keyboard.append([InlineKeyboardButton("Назад ↩️", callback_data="view_gadgets")])
     
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await utils.send_or_edit_message(query, message_obj, message, reply_markup)
 
 
-async def show_pc_details(user_id: int, pc_card: dict, query, back_callback: str = "view_pcs", show_back: bool = True, title: str = None):
+async def show_pc_details(user_id: int, pc_card: dict, query, back_callback: str = "view_gadgets", show_back: bool = True, title: str = None):
     """Reusable function to show PC details with eject buttons and sell option."""
     
     components = pc_card.get("components", [])
