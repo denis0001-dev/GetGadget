@@ -27,14 +27,14 @@ export const Card: React.FC<CardProps> = ({ children, onClick, style }) => {
     }
   };
 
-  const handleMouseDown = (e: React.MouseEvent) => {
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (onClick) {
       e.currentTarget.style.transform = 'scale(0.98)';
       e.currentTarget.style.opacity = '0.8';
     }
   };
 
-  const handleMouseUp = (e: React.MouseEvent) => {
+  const handleMouseUp = (e: React.MouseEvent<HTMLDivElement>) => {
     if (onClick) {
       e.currentTarget.style.transform = 'scale(1)';
       e.currentTarget.style.opacity = '1';

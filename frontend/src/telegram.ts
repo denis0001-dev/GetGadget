@@ -2,14 +2,12 @@
  * Telegram Web App SDK integration
  */
 
-import { initData, BackButton, MainButton, initDataRaw } from '@twa-dev/sdk';
+import WebApp from '@twa-dev/sdk';
 
 // Initialize Telegram Web App
 export function initTelegram() {
-  initData();
-  
   // Expand the app to full height
-  if (window.Telegram?.WebApp) {
+  if (WebApp && window.Telegram?.WebApp) {
     window.Telegram.WebApp.expand();
     window.Telegram.WebApp.ready();
   }
@@ -25,7 +23,10 @@ export function getTelegramUser() {
 
 // Get Telegram init data for API authentication
 export function getInitData(): string {
-  return initDataRaw() || '';
+  if (window.Telegram?.WebApp?.initData) {
+    return window.Telegram.WebApp.initData;
+  }
+  return '';
 }
 
 // Get Telegram theme
@@ -48,32 +49,32 @@ export function getTelegramTheme() {
 
 // Setup back button handler
 export function setupBackButton(onClick: () => void) {
-  if (BackButton) {
-    BackButton.show();
-    BackButton.onClick(onClick);
+  if (window.Telegram?.WebApp?.BackButton) {
+    window.Telegram.WebApp.BackButton.show();
+    window.Telegram.WebApp.BackButton.onClick(onClick);
   }
 }
 
 // Hide back button
 export function hideBackButton() {
-  if (BackButton) {
-    BackButton.hide();
+  if (window.Telegram?.WebApp?.BackButton) {
+    window.Telegram.WebApp.BackButton.hide();
   }
 }
 
 // Setup main button
 export function setupMainButton(text: string, onClick: () => void) {
-  if (MainButton) {
-    MainButton.setText(text);
-    MainButton.onClick(onClick);
-    MainButton.show();
+  if (window.Telegram?.WebApp?.MainButton) {
+    window.Telegram.WebApp.MainButton.setText(text);
+    window.Telegram.WebApp.MainButton.onClick(onClick);
+    window.Telegram.WebApp.MainButton.show();
   }
 }
 
 // Hide main button
 export function hideMainButton() {
-  if (MainButton) {
-    MainButton.hide();
+  if (window.Telegram?.WebApp?.MainButton) {
+    window.Telegram.WebApp.MainButton.hide();
   }
 }
 
@@ -104,6 +105,7 @@ declare global {
   interface Window {
     Telegram?: {
       WebApp: {
+        initData?: string;
         initDataUnsafe?: {
           user?: {
             id: number;
@@ -121,6 +123,17 @@ declare global {
         ready: () => void;
         showAlert: (message: string) => void;
         showConfirm: (message: string, callback: (confirmed: boolean) => void) => void;
+        BackButton?: {
+          show: () => void;
+          hide: () => void;
+          onClick: (callback: () => void) => void;
+        };
+        MainButton?: {
+          setText: (text: string) => void;
+          onClick: (callback: () => void) => void;
+          show: () => void;
+          hide: () => void;
+        };
       };
     };
   }
