@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useEffect, useState, useRef } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigationType } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { initTelegram, getTelegramUser, getTelegramTheme } from './telegram';
 import { Home } from './pages/Home';
@@ -61,149 +61,249 @@ export function App() {
 
 function AnimatedRoutes() {
     const location = useLocation();
+    const navigationType = useNavigationType();
+    const [direction, setDirection] = useState(1); // 1 -> forward (slide left), -1 -> backward (slide right)
+
+    // Robust direction tracking using a simple path stack
+    const pathStackRef = useRef<string[]>([location.pathname]);
+    const currentIndexRef = useRef<number>(0);
+
+    useEffect(() => {
+        const stack = pathStackRef.current;
+        const currentIdx = currentIndexRef.current;
+        const nextPath = location.pathname;
+        const existingIdx = stack.indexOf(nextPath);
+
+        let newDir = 1;
+        if (existingIdx !== -1) {
+            // Path exists in stack: if it's before current, we're going back
+            newDir = existingIdx < currentIdx ? -1 : 1;
+            // Trim stack to this point (simulate browser back forward behavior)
+            pathStackRef.current = stack.slice(0, existingIdx + 1);
+            currentIndexRef.current = existingIdx;
+        } else {
+            // New path: push and move forward
+            pathStackRef.current = [...stack.slice(0, currentIdx + 1), nextPath];
+            currentIndexRef.current = currentIdx + 1;
+            newDir = 1;
+        }
+
+        // Fallback for POP where stack may not change as expected
+        if (navigationType === 'POP' && newDir !== -1) {
+            newDir = -1;
+        }
+
+        setDirection(newDir);
+    }, [location, navigationType]);
 
     const pageVariants = {
-        initial: {
+        initial: (dir: number) => ({
+            x: dir > 0 ? '100%' : '-100%',
             opacity: 0,
-            y: 20,
-            scale: 0.98,
-        },
+            zIndex: 2,
+        }),
         animate: {
+            x: 0,
             opacity: 1,
-            y: 0,
-            scale: 1,
+            zIndex: 2,
         },
-        exit: {
+        exit: (dir: number) => ({
+            x: dir > 0 ? '-100%' : '100%',
             opacity: 0,
-            y: -20,
-            scale: 0.98,
-        },
+            zIndex: 0,
+        }),
     };
 
     const pageTransition = {
-        type: "spring",
-        stiffness: 300,
-        damping: 30,
+        type: "tween",
+        ease: "easeInOut",
+        duration: 0.3,
     };
 
     return (
-        <AnimatePresence mode="wait">
-            <Routes location={location} key={location.pathname}>
-                <Route
-                    path="/"
-                    element={
-                        <motion.div
-                            variants={pageVariants}
-                            initial="initial"
-                            animate="animate"
-                            exit="exit"
-                            transition={pageTransition}
-                        >
-                            <Home />
-                        </motion.div>
-                    }
-                />
-                <Route
-                    path="/collection"
-                    element={
-                        <motion.div
-                            variants={pageVariants}
-                            initial="initial"
-                            animate="animate"
-                            exit="exit"
-                            transition={pageTransition}
-                        >
-                            <Collection />
-                        </motion.div>
-                    }
-                />
-                <Route
-                    path="/collection/:cardId"
-                    element={
-                        <motion.div
-                            variants={pageVariants}
-                            initial="initial"
-                            animate="animate"
-                            exit="exit"
-                            transition={pageTransition}
-                        >
-                            <CardDetails />
-                        </motion.div>
-                    }
-                />
-                <Route
-                    path="/build"
-                    element={
-                        <motion.div
-                            variants={pageVariants}
-                            initial="initial"
-                            animate="animate"
-                            exit="exit"
-                            transition={pageTransition}
-                        >
-                            <Build />
-                        </motion.div>
-                    }
-                />
-                <Route
-                    path="/pcs"
-                    element={
-                        <motion.div
-                            variants={pageVariants}
-                            initial="initial"
-                            animate="animate"
-                            exit="exit"
-                            transition={pageTransition}
-                        >
-                            <PCs />
-                        </motion.div>
-                    }
-                />
-                <Route
-                    path="/pcs/:pcId"
-                    element={
-                        <motion.div
-                            variants={pageVariants}
-                            initial="initial"
-                            animate="animate"
-                            exit="exit"
-                            transition={pageTransition}
-                        >
-                            <PCDetails />
-                        </motion.div>
-                    }
-                />
-                <Route
-                    path="/trade"
-                    element={
-                        <motion.div
-                            variants={pageVariants}
-                            initial="initial"
-                            animate="animate"
-                            exit="exit"
-                            transition={pageTransition}
-                        >
-                            <Trade />
-                        </motion.div>
-                    }
-                />
-                <Route
-                    path="/profile"
-                    element={
-                        <motion.div
-                            variants={pageVariants}
-                            initial="initial"
-                            animate="animate"
-                            exit="exit"
-                            transition={pageTransition}
-                        >
-                            <Profile />
-                        </motion.div>
-                    }
-                />
-                <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-        </AnimatePresence>
+        <div style={{ position: 'relative', width: '100%', minHeight: '100vh', overflow: 'hidden' }}>
+            <AnimatePresence initial={false}>
+                <Routes location={location} key={location.pathname}>
+                    <Route
+                        path="/"
+                        element={
+                            <motion.div
+                                variants={pageVariants}
+                                initial="initial"
+                                animate="animate"
+                                exit="exit"
+                                transition={pageTransition}
+                                custom={direction}
+                                style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    width: '100%',
+                                    minHeight: '100vh',
+                                }}
+                            >
+                                <Home />
+                            </motion.div>
+                        }
+                    />
+                    <Route
+                        path="/collection"
+                        element={
+                            <motion.div
+                                variants={pageVariants}
+                                initial="initial"
+                                animate="animate"
+                                exit="exit"
+                                transition={pageTransition}
+                                custom={direction}
+                                style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    width: '100%',
+                                    minHeight: '100vh',
+                                }}
+                            >
+                                <Collection />
+                            </motion.div>
+                        }
+                    />
+                    <Route
+                        path="/collection/:cardId"
+                        element={
+                            <motion.div
+                                variants={pageVariants}
+                                initial="initial"
+                                animate="animate"
+                                exit="exit"
+                                transition={pageTransition}
+                                custom={direction}
+                                style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    width: '100%',
+                                    minHeight: '100vh',
+                                }}
+                            >
+                                <CardDetails />
+                            </motion.div>
+                        }
+                    />
+                    <Route
+                        path="/build"
+                        element={
+                            <motion.div
+                                variants={pageVariants}
+                                initial="initial"
+                                animate="animate"
+                                exit="exit"
+                                transition={pageTransition}
+                                custom={direction}
+                                style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    width: '100%',
+                                    minHeight: '100vh',
+                                }}
+                            >
+                                <Build />
+                            </motion.div>
+                        }
+                    />
+                    <Route
+                        path="/pcs"
+                        element={
+                            <motion.div
+                                variants={pageVariants}
+                                initial="initial"
+                                animate="animate"
+                                exit="exit"
+                                transition={pageTransition}
+                                custom={direction}
+                                style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    width: '100%',
+                                    minHeight: '100vh',
+                                }}
+                            >
+                                <PCs />
+                            </motion.div>
+                        }
+                    />
+                    <Route
+                        path="/pcs/:pcId"
+                        element={
+                            <motion.div
+                                variants={pageVariants}
+                                initial="initial"
+                                animate="animate"
+                                exit="exit"
+                                transition={pageTransition}
+                                custom={direction}
+                                style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    width: '100%',
+                                    minHeight: '100vh',
+                                }}
+                            >
+                                <PCDetails />
+                            </motion.div>
+                        }
+                    />
+                    <Route
+                        path="/trade"
+                        element={
+                            <motion.div
+                                variants={pageVariants}
+                                initial="initial"
+                                animate="animate"
+                                exit="exit"
+                                transition={pageTransition}
+                                custom={direction}
+                                style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    width: '100%',
+                                    minHeight: '100vh',
+                                }}
+                            >
+                                <Trade />
+                            </motion.div>
+                        }
+                    />
+                    <Route
+                        path="/profile"
+                        element={
+                            <motion.div
+                                variants={pageVariants}
+                                initial="initial"
+                                animate="animate"
+                                exit="exit"
+                                transition={pageTransition}
+                                custom={direction}
+                                style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    width: '100%',
+                                    minHeight: '100vh',
+                                }}
+                            >
+                                <Profile />
+                            </motion.div>
+                        }
+                    />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+            </AnimatePresence>
+        </div>
     );
 }
 
