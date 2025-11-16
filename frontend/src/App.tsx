@@ -98,7 +98,7 @@ function AnimatedRoutes() {
 
     const pageVariants = {
         initial: (dir: number) => ({
-            x: dir > 0 ? '100%' : '-100%',
+            x: dir > 0 ? '-100%' : '100%',
             opacity: 0,
             zIndex: 2,
         }),
@@ -108,7 +108,7 @@ function AnimatedRoutes() {
             zIndex: 2,
         },
         exit: (dir: number) => ({
-            x: dir > 0 ? '-100%' : '100%',
+            x: dir > 0 ? '100%' : '-100%',
             opacity: 0,
             zIndex: 0,
         }),
