@@ -10,30 +10,23 @@ import { PCs } from './pages/PCs';
 import { PCDetails } from './pages/PCDetails';
 import { Trade } from './pages/Trade';
 import { Profile } from './pages/Profile';
+import { TabBar } from './components/TabBar';
 import './App.css';
+import type { TelegramIconName } from './components/TelegramIcon';
 
 export function App() {
     const [theme, setTheme] = useState(getTelegramTheme());
 
     useEffect(() => {
-        // Initialize Telegram Web App
         initTelegram();
-    
-        // Update theme
         setTheme(getTelegramTheme());
-    
-        // Apply theme colors to document
         const telegramTheme = getTelegramTheme();
         document.body.style.backgroundColor = telegramTheme.backgroundColor;
         document.body.style.color = telegramTheme.textColor;
-    
-        // Check if user is authenticated
         const user = getTelegramUser();
         if (!user) {
             console.warn('Telegram user not found. App should be opened from Telegram.');
         }
-
-        // Listen for theme changes
         const interval = setInterval(() => {
             const newTheme = getTelegramTheme();
             if (newTheme.isDark !== theme.isDark) {
@@ -42,58 +35,77 @@ export function App() {
                 document.body.style.color = newTheme.textColor;
             }
         }, 1000);
-
         return () => clearInterval(interval);
     }, [theme.isDark]);
+
+    const tabItems: Array<{ path: string; label: string; icon: TelegramIconName }> = [
+        { path: '/', label: 'Главная', icon: 'home' },
+        { path: '/collection', label: 'Коллекция', icon: 'collection' },
+        { path: '/build', label: 'Сборка', icon: 'build' },
+        { path: '/profile', label: 'Профиль', icon: 'profile' },
+    ];
 
     return (
         <BrowserRouter>
             <div className="app" style={{ 
                 minHeight: '100vh', 
                 backgroundColor: theme.backgroundColor,
-                color: theme.textColor
+                color: theme.textColor,
+                paddingBottom: 'calc(60px + env(safe-area-inset-bottom, 0) + 8px)'
             }}>
-                <AnimatedRoutes />
+                <AnimatedRoutes tabItems={tabItems} />
+                <TabBar items={tabItems} />
             </div>
         </BrowserRouter>
     );
 }
 
-function AnimatedRoutes() {
+function AnimatedRoutes({ tabItems }: { tabItems: Array<{ path: string }> }) {
     const location = useLocation();
     const navigationType = useNavigationType();
-    const [direction, setDirection] = useState(1); // 1 -> forward (slide left), -1 -> backward (slide right)
+    const [direction, setDirection] = useState(1);
 
-    // Robust direction tracking using a simple path stack
+    // Path stack fallback
     const pathStackRef = useRef<string[]>([location.pathname]);
     const currentIndexRef = useRef<number>(0);
 
+    // Tab-based direction
+    const tabOrder = tabItems.map(t => t.path);
+    const prevTabPathRef = useRef<string>(location.pathname);
+
     useEffect(() => {
+        // Tab-based priority
+        const currentPath = location.pathname;
+        const prevPath = prevTabPathRef.current;
+        const currentTabIdx = tabOrder.findIndex(p => currentPath.startsWith(p));
+        const prevTabIdx = tabOrder.findIndex(p => prevPath.startsWith(p));
+        if (currentTabIdx !== -1 && prevTabIdx !== -1 && currentTabIdx !== prevTabIdx) {
+            // Slide direction by tab order difference
+            setDirection(currentTabIdx > prevTabIdx ? 1 : -1);
+            prevTabPathRef.current = currentPath;
+            return;
+        }
+
+        // Stack fallback
         const stack = pathStackRef.current;
         const currentIdx = currentIndexRef.current;
-        const nextPath = location.pathname;
+        const nextPath = currentPath;
         const existingIdx = stack.indexOf(nextPath);
-
         let newDir = 1;
         if (existingIdx !== -1) {
-            // Path exists in stack: if it's before current, we're going back
             newDir = existingIdx < currentIdx ? -1 : 1;
-            // Trim stack to this point (simulate browser back forward behavior)
             pathStackRef.current = stack.slice(0, existingIdx + 1);
             currentIndexRef.current = existingIdx;
         } else {
-            // New path: push and move forward
             pathStackRef.current = [...stack.slice(0, currentIdx + 1), nextPath];
             currentIndexRef.current = currentIdx + 1;
             newDir = 1;
         }
-
-        // Fallback for POP where stack may not change as expected
         if (navigationType === 'POP' && newDir !== -1) {
             newDir = -1;
         }
-
         setDirection(newDir);
+        prevTabPathRef.current = currentPath;
     }, [location, navigationType]);
 
     const pageVariants = {
@@ -115,8 +127,8 @@ function AnimatedRoutes() {
     };
 
     const pageTransition = {
-        type: "tween",
-        ease: "easeInOut",
+        type: 'tween',
+        ease: 'easeInOut',
         duration: 0.3,
     };
 
@@ -134,13 +146,7 @@ function AnimatedRoutes() {
                                 exit="exit"
                                 transition={pageTransition}
                                 custom={direction}
-                                style={{
-                                    position: 'absolute',
-                                    top: 0,
-                                    left: 0,
-                                    width: '100%',
-                                    minHeight: '100vh',
-                                }}
+                                style={{ position: 'absolute', top: 0, left: 0, width: '100%', minHeight: '100vh' }}
                             >
                                 <Home />
                             </motion.div>
@@ -156,13 +162,7 @@ function AnimatedRoutes() {
                                 exit="exit"
                                 transition={pageTransition}
                                 custom={direction}
-                                style={{
-                                    position: 'absolute',
-                                    top: 0,
-                                    left: 0,
-                                    width: '100%',
-                                    minHeight: '100vh',
-                                }}
+                                style={{ position: 'absolute', top: 0, left: 0, width: '100%', minHeight: '100vh' }}
                             >
                                 <Collection />
                             </motion.div>
@@ -178,13 +178,7 @@ function AnimatedRoutes() {
                                 exit="exit"
                                 transition={pageTransition}
                                 custom={direction}
-                                style={{
-                                    position: 'absolute',
-                                    top: 0,
-                                    left: 0,
-                                    width: '100%',
-                                    minHeight: '100vh',
-                                }}
+                                style={{ position: 'absolute', top: 0, left: 0, width: '100%', minHeight: '100vh' }}
                             >
                                 <CardDetails />
                             </motion.div>
@@ -200,13 +194,7 @@ function AnimatedRoutes() {
                                 exit="exit"
                                 transition={pageTransition}
                                 custom={direction}
-                                style={{
-                                    position: 'absolute',
-                                    top: 0,
-                                    left: 0,
-                                    width: '100%',
-                                    minHeight: '100vh',
-                                }}
+                                style={{ position: 'absolute', top: 0, left: 0, width: '100%', minHeight: '100vh' }}
                             >
                                 <Build />
                             </motion.div>
@@ -222,13 +210,7 @@ function AnimatedRoutes() {
                                 exit="exit"
                                 transition={pageTransition}
                                 custom={direction}
-                                style={{
-                                    position: 'absolute',
-                                    top: 0,
-                                    left: 0,
-                                    width: '100%',
-                                    minHeight: '100vh',
-                                }}
+                                style={{ position: 'absolute', top: 0, left: 0, width: '100%', minHeight: '100vh' }}
                             >
                                 <PCs />
                             </motion.div>
@@ -244,13 +226,7 @@ function AnimatedRoutes() {
                                 exit="exit"
                                 transition={pageTransition}
                                 custom={direction}
-                                style={{
-                                    position: 'absolute',
-                                    top: 0,
-                                    left: 0,
-                                    width: '100%',
-                                    minHeight: '100vh',
-                                }}
+                                style={{ position: 'absolute', top: 0, left: 0, width: '100%', minHeight: '100vh' }}
                             >
                                 <PCDetails />
                             </motion.div>
@@ -266,13 +242,7 @@ function AnimatedRoutes() {
                                 exit="exit"
                                 transition={pageTransition}
                                 custom={direction}
-                                style={{
-                                    position: 'absolute',
-                                    top: 0,
-                                    left: 0,
-                                    width: '100%',
-                                    minHeight: '100vh',
-                                }}
+                                style={{ position: 'absolute', top: 0, left: 0, width: '100%', minHeight: '100vh' }}
                             >
                                 <Trade />
                             </motion.div>
@@ -288,13 +258,7 @@ function AnimatedRoutes() {
                                 exit="exit"
                                 transition={pageTransition}
                                 custom={direction}
-                                style={{
-                                    position: 'absolute',
-                                    top: 0,
-                                    left: 0,
-                                    width: '100%',
-                                    minHeight: '100vh',
-                                }}
+                                style={{ position: 'absolute', top: 0, left: 0, width: '100%', minHeight: '100vh' }}
                             >
                                 <Profile />
                             </motion.div>

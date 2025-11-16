@@ -4,6 +4,12 @@
     box-sizing: border-box;
 }
 
+html, body, #root {
+    height: 100%;
+    overflow: hidden; /* prevent global scroll/overflow */
+    overscroll-behavior: none; /* disable bounce/overscroll */
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
       'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
@@ -17,6 +23,8 @@ body {
 .app {
     min-height: 100vh;
     width: 100vw;
+    position: relative;
+    overflow: hidden; /* clip animated pages */
 }
 
 /* Telegram-like scrollbar */

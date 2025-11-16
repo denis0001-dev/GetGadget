@@ -4,12 +4,61 @@
 
 import WebApp from '@twa-dev/sdk';
 
+// Cross-platform postEvent helper based on Telegram Mini Apps methods docs
+function postEvent(eventType: string, eventData?: unknown) {
+    const dataStr = JSON.stringify(eventData ?? {});
+    // Desktop/Mobile Telegram
+    if (typeof window !== 'undefined' && typeof window.TelegramWebviewProxy?.postEvent === 'function') {
+        try {
+            window.TelegramWebviewProxy.postEvent(eventType, dataStr);
+            return;
+        } catch {
+            // fall through to web iframe method
+        }
+    }
+    // Web Telegram (iframe)
+    try {
+        const payload = JSON.stringify({ eventType, eventData });
+        window.parent?.postMessage(payload, 'https://web.telegram.org');
+    } catch {
+        // noop
+    }
+}
+
 // Initialize Telegram Web App
 export function initTelegram() {
-    // Expand the app to full height
     if (WebApp && window.Telegram?.WebApp) {
-        window.Telegram.WebApp.expand();
-        window.Telegram.WebApp.ready();
+        const wa = window.Telegram.WebApp;
+        // Request edge-to-edge fullscreen per docs
+        try {
+            postEvent('web_app_request_fullscreen');
+        } catch {}
+
+        // Expand and theme
+        wa.expand();
+        try {
+            if (wa.colorScheme === 'dark') {
+                // @ts-ignore
+                wa.setHeaderColor && wa.setHeaderColor('#000000');
+                // @ts-ignore
+                wa.setBackgroundColor && wa.setBackgroundColor('#000000');
+                // Also via method API where available
+                postEvent('web_app_set_header_color', { color_key: 'bg_color' });
+            } else {
+                // @ts-ignore
+                wa.setHeaderColor && wa.setHeaderColor('#ffffff');
+                // @ts-ignore
+                wa.setBackgroundColor && wa.setBackgroundColor('#ffffff');
+                postEvent('web_app_set_header_color', { color_key: 'bg_color' });
+            }
+        } catch {}
+
+        wa.ready();
+
+        // Retry fullscreen shortly after ready (some clients require a tick)
+        setTimeout(() => {
+            try { postEvent('web_app_request_fullscreen'); } catch {}
+        }, 50);
     }
 }
 
@@ -123,6 +172,8 @@ declare global {
                 ready: () => void;
                 showAlert: (message: string) => void;
                 showConfirm: (message: string, callback: (confirmed: boolean) => void) => void;
+                setHeaderColor?: (color: string) => void;
+                setBackgroundColor?: (color: string) => void;
                 BackButton?: {
                     show: () => void;
                     hide: () => void;
@@ -135,6 +186,9 @@ declare global {
                     hide: () => void;
                 };
             };
+        };
+        TelegramWebviewProxy?: {
+            postEvent: (eventType: string, data: string) => void;
         };
     }
 }
