@@ -25,14 +25,55 @@ function postEvent(eventType: string, eventData?: unknown) {
     }
 }
 
+function applySafeAreaToCss(insets: { top?: number; bottom?: number; left?: number; right?: number }) {
+    const root = document.documentElement;
+    if (typeof insets.top === 'number') root.style.setProperty('--tg-safe-area-top', `${insets.top}px`);
+    if (typeof insets.bottom === 'number') root.style.setProperty('--tg-safe-area-bottom', `${insets.bottom}px`);
+    if (typeof insets.left === 'number') root.style.setProperty('--tg-safe-area-left', `${insets.left}px`);
+    if (typeof insets.right === 'number') root.style.setProperty('--tg-safe-area-right', `${insets.right}px`);
+}
+
+function attachSafeAreaListeners() {
+    // Web (iframe) events
+    window.addEventListener('message', (ev: MessageEvent) => {
+        try {
+            const data = typeof ev.data === 'string' ? JSON.parse(ev.data) : ev.data;
+            if (data && data.eventType === 'content_safe_area_changed') {
+                const e = data.eventData || {};
+                applySafeAreaToCss({ top: e.top, bottom: e.bottom, left: e.left, right: e.right });
+            }
+        } catch {
+            // ignore
+        }
+    });
+
+    // Mobile/Desktop Proxy callback (some builds dispatch JSON in second arg string)
+    const proxy = window.TelegramWebviewProxy;
+    if (proxy && typeof proxy.onEvent === 'function') {
+        try {
+            proxy.onEvent((name: string, dataStr: string) => {
+                if (name === 'content_safe_area_changed') {
+                    try {
+                        const e = JSON.parse(dataStr);
+                        applySafeAreaToCss({ top: e.top, bottom: e.bottom, left: e.left, right: e.right });
+                    } catch {}
+                }
+            });
+        } catch {}
+    }
+}
+
 // Initialize Telegram Web App
 export function initTelegram() {
     if (WebApp && window.Telegram?.WebApp) {
         const wa = window.Telegram.WebApp;
+        attachSafeAreaListeners();
+
+        // Request safe area insets explicitly
+        try { postEvent('web_app_request_content_safe_area'); } catch {}
+
         // Request edge-to-edge fullscreen per docs
-        try {
-            postEvent('web_app_request_fullscreen');
-        } catch {}
+        try { postEvent('web_app_request_fullscreen'); } catch {}
 
         // Expand and theme
         wa.expand();
@@ -42,7 +83,6 @@ export function initTelegram() {
                 wa.setHeaderColor && wa.setHeaderColor('#000000');
                 // @ts-ignore
                 wa.setBackgroundColor && wa.setBackgroundColor('#000000');
-                // Also via method API where available
                 postEvent('web_app_set_header_color', { color_key: 'bg_color' });
             } else {
                 // @ts-ignore
@@ -55,8 +95,9 @@ export function initTelegram() {
 
         wa.ready();
 
-        // Retry fullscreen shortly after ready (some clients require a tick)
+        // Retry requests shortly after ready
         setTimeout(() => {
+            try { postEvent('web_app_request_content_safe_area'); } catch {}
             try { postEvent('web_app_request_fullscreen'); } catch {}
         }, 50);
     }
@@ -189,6 +230,7 @@ declare global {
         };
         TelegramWebviewProxy?: {
             postEvent: (eventType: string, data: string) => void;
+            onEvent?: (cb: (name: string, data: string) => void) => void;
         };
     }
 }

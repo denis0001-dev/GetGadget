@@ -51,7 +51,10 @@ export function App() {
                 minHeight: '100vh', 
                 backgroundColor: theme.backgroundColor,
                 color: theme.textColor,
-                paddingBottom: 'calc(60px + env(safe-area-inset-bottom, 0) + 8px)'
+                paddingBottom: 'calc(60px + env(safe-area-inset-bottom, 0) + var(--tg-safe-area-bottom, 0px) + 8px)',
+                paddingTop: 'calc(env(safe-area-inset-top, 0) + var(--tg-safe-area-top, 0px) + 6px)',
+                paddingLeft: 'calc(env(safe-area-inset-left, 0) + var(--tg-safe-area-left, 0px) + 6px)',
+                paddingRight: 'calc(env(safe-area-inset-right, 0) + var(--tg-safe-area-right, 0px) + 6px)'
             }}>
                 <AnimatedRoutes tabItems={tabItems} />
                 <TabBar items={tabItems} />

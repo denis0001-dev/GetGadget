@@ -85,7 +85,7 @@ export function TabBar({ items, pillPadding = 8 }: TabBarProps) {
                 position: 'fixed',
                 left: '50%',
                 transform: 'translateX(-50%)',
-                bottom: 'calc(env(safe-area-inset-bottom, 0) + 10px)',
+                bottom: 'calc(var(--tg-safe-area-bottom, 0px) + env(safe-area-inset-bottom, 0) + 10px)',
                 zIndex: 100,
                 background: glassBg,
                 backdropFilter: 'blur(18px)',
