@@ -10,17 +10,8 @@ __pycache__/
 *$py.class
 *.so
 .Python
-env/
-venv/
-ENV/
-build/
-develop-eggs/
+.venv
 dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
 parts/
 sdist/
 var/
@@ -43,3 +34,4 @@ Thumbs.db
 # SCSS module type definitions
 *.module.scss.d.ts
 
+node_modules

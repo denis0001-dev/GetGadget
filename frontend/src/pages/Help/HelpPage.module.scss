@@ -1,0 +1,108 @@
+.helpPage {
+    position: relative;
+    width: 100%;
+    min-height: 100%;
+    padding: 20px;
+    padding-bottom: 100px;
+    z-index: 1;
+}
+
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.title {
+    font-size: 28px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 1);
+    text-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.section {
+    padding: 24px;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.2);
+}
+
+.sectionTitle {
+    font-size: 20px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 1);
+    margin-bottom: 16px;
+}
+
+.commandList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.commandItem {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+}
+
+.commandName {
+    font-size: 16px;
+    font-weight: 600;
+    color: rgba(0, 255, 255, 1);
+}
+
+.commandDesc {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.infoList {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.infoList li {
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.rarityList {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rarityItem {
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 16px;
+    font-weight: 500;
+}
+

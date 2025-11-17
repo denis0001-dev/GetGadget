@@ -1,6 +1,6 @@
 # Telegram Gadget Card Bot
 
-A Telegram bot that lets you collect gadget cards, manage coins, and build custom PCs from parts you collect.
+A Telegram bot that lets you collect gadget cards, manage coins, and build custom PCs from parts you collect. Includes a modern Telegram Mini App frontend.
 
 ## Features
 
@@ -10,28 +10,61 @@ A Telegram bot that lets you collect gadget cards, manage coins, and build custo
 - Build custom gaming PCs from graphics cards, processors, and motherboards
 - Eject parts from built PCs
 - Per-user cooldown system for getting cards
+- Modern Telegram Mini App with edge-to-edge design
+- Animated card reveal with scrolling reel
+- Framer Motion animations throughout
+- Full Telegram Mini Apps platform integration
 
 ## Setup
 
-1. Install dependencies:
+### Backend (Bot + API)
+
+1. Install Python dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-2. Create a `.env` file from `.env.example`:
-```bash
-cp .env.example .env
-```
-
-3. Add your Telegram bot token to `.env`:
+2. Create a `.env` file with your bot token:
 ```
 BOT_TOKEN=your_telegram_bot_token_here
 ```
 
-4. Run the bot:
+3. Run the bot (starts both Telegram bot and FastAPI server on port 8400):
 ```bash
-python bot.py
+python3 bot.py
 ```
+
+The bot will run on the default polling mode, and the FastAPI API will be available at `http://localhost:8400` (configured for `api.getgadgets.toolbox-io.ru`).
+
+### Frontend (Mini App)
+
+1. Install Node.js dependencies:
+```bash
+cd frontend
+npm install
+```
+
+2. Run the development server (runs on port 8401):
+```bash
+npm run dev
+```
+
+The frontend will be available at `http://localhost:8401` (configured for `getgadgets.toolbox-io.ru`).
+
+### VS Code Tasks
+
+VS Code tasks are configured to run both the bot and frontend:
+
+- **Run Bot**: Starts the Python bot and FastAPI server
+- **Run Vite**: Starts the Vite development server
+- **Run Bot and Frontend**: Runs both servers in parallel (auto-runs on folder open)
+
+Access these tasks via `Cmd+Shift+P` (Mac) or `Ctrl+Shift+P` (Windows/Linux) and type "Tasks: Run Task".
+
+## Ports
+
+- **Backend API**: `8400` (api.getgadgets.toolbox-io.ru)
+- **Frontend**: `8401` (getgadgets.toolbox-io.ru)
 
 ## Commands
 
