@@ -77,3 +77,4 @@ export default function BottomNav({ currentPath }: BottomNavProps) {
     );
 }
 
+

@@ -3,6 +3,7 @@ Telegram Gadget Card Bot
 Main entry point for the bot application.
 """
 
+import asyncio
 import threading
 
 import uvicorn
@@ -31,13 +32,23 @@ async def initialize_user(application):
 
 def run_api_server():
     """Run the FastAPI server in a separate thread."""
+    import nest_asyncio
+    nest_asyncio.apply()
+    
     app = api.create_app()
-    uvicorn.run(
+    uvicorn_config = uvicorn.Config(
         app,
         host="0.0.0.0",
         port=8400,
-        log_level="info"
+        log_level="info",
+        loop="asyncio"
     )
+    server = uvicorn.Server(uvicorn_config)
+    
+    # Create new event loop for this thread
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(server.serve())
 
 
 def main():

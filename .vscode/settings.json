@@ -1,0 +1,10 @@
+{
+    "task.allowAutomaticTasks": "on",
+    "task.quickOpen.history": 10,
+    "task.quickOpen.detail": true,
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/*.module.scss.d.ts": true
+    }
+}
+

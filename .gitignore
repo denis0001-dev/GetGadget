@@ -21,8 +21,6 @@ wheels/
 *.egg
 
 # IDE
-.vscode/
-.idea/
 *.swp
 *.swo
 *~
@@ -35,3 +33,4 @@ Thumbs.db
 *.module.scss.d.ts
 
 node_modules
+.vite

@@ -12,4 +12,3 @@ export default function SafeAreaView({ children }: SafeAreaViewProps) {
         </div>
     );
 }
-

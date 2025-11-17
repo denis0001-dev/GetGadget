@@ -552,3 +552,4 @@ def create_app():
     """Factory function to create the FastAPI app."""
     return app
 
+

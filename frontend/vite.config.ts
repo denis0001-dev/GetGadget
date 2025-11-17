@@ -17,9 +17,8 @@ export default defineConfig({
     },
     server: {
         port: 8401,
-        host: true,
+        host: true
     },
     base: '/',
     publicDir: 'public',
 });
-
