@@ -46,8 +46,9 @@ export default function BuildPage() {
             } else {
                 setError(null);
             }
-        } catch (err: any) {
-            setError(err.message || 'Ошибка загрузки деталей');
+        } catch (err) {
+            const error = err instanceof Error ? err : new Error(String(err));
+            setError(error.message || 'Ошибка загрузки деталей');
         } finally {
             setLoading(false);
         }
@@ -88,8 +89,9 @@ export default function BuildPage() {
                 type: 'notification',
                 notification_type: 'success',
             });
-        } catch (err: any) {
-            setError(err.message || 'Ошибка сборки ПК');
+        } catch (err) {
+            const error = err instanceof Error ? err : new Error(String(err));
+            setError(error.message || 'Ошибка сборки ПК');
         } finally {
             setLoading(false);
         }

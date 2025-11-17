@@ -43,10 +43,16 @@ export default function App() {
                 const { themeParams } = launchParams;
                 
                 // Mount MiniApp component first (required for other features)
-                await miniApp.mount();
+                // Check if already mounted to prevent concurrent calls
+                if (!miniApp.isMounted()) {
+                    await miniApp.mount();
+                }
                 
                 // Mount viewport component (required for safe area insets and fullscreen)
-                await viewport.mount();
+                // Check if already mounted to prevent concurrent calls
+                if (!viewport.isMounted()) {
+                    await viewport.mount();
+                }
                 
                 // Expand viewport to fullscreen (edge-to-edge) using SDK
                 console.log('Attempting to expand viewport...');

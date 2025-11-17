@@ -19,8 +19,9 @@ export default function ProfilePage() {
             const data = await api.getUser();
             setUser(data.user);
             setStats(data.stats);
-        } catch (err: any) {
-            setError(err.message || 'Ошибка загрузки профиля');
+        } catch (err) {
+            const error = err instanceof Error ? err : new Error(String(err));
+            setError(error.message || 'Ошибка загрузки профиля');
         } finally {
             setLoading(false);
         }

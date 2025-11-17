@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { api } from '@/lib/api';
+import { api, AvailableParts } from '@/lib/api';
 
 export default function SelectCPU() {
-  const [parts, setParts] = useState<any>(null);
+  const [parts, setParts] = useState<AvailableParts | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [params] = useSearchParams();
@@ -12,9 +12,12 @@ export default function SelectCPU() {
 
   useEffect(() => {
     setLoading(true);
-    api.getBuildParts()
-      .then(setParts)
-      .catch((e) => setError(e.message || 'Error'))
+    api.getAvailableParts()
+      .then((data) => setParts(data.parts))
+      .catch((e: unknown) => {
+        const error = e instanceof Error ? e : new Error(String(e));
+        setError(error.message || 'Error');
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -27,7 +30,7 @@ export default function SelectCPU() {
       </div>
       {loading && <div className="surface" style={{ padding: 16 }}>Загрузка...</div>}
       {error && <div className="surface" style={{ padding: 16, color: '#f55' }}>{error}</div>}
-      {cpus.map((c: any) => (
+      {cpus.map((c) => (
         <button key={c.card_id} className="surface" style={{ padding: 16, textAlign: 'left' }} onClick={() => navigate(`/build/mb?gpu=${gpu}&cpu=${c.card_id}`)}>
           {c.gadget_name} — {c.rarity}
         </button>

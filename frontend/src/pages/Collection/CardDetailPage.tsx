@@ -45,8 +45,9 @@ export default function CardDetailPage() {
             setLoading(true);
             const data = await api.getCard(id);
             setCard(data.card);
-        } catch (err: any) {
-            setError(err.message || 'Ошибка загрузки карточки');
+        } catch (err) {
+            const error = err instanceof Error ? err : new Error(String(err));
+            setError(error.message || 'Ошибка загрузки карточки');
         } finally {
             setLoading(false);
         }
@@ -73,10 +74,14 @@ export default function CardDetailPage() {
             alert(`💰 Карточка Продана!\n\n${card.gadget_name}\nЦена продажи: ${data.sale_price} монет\n\nНовый баланс: ${data.new_balance} монет 💰`);
 
             // Navigate back
-            const backPath = (location.state as any)?.from || '/collection';
+            interface LocationState {
+                from?: string;
+            }
+            const backPath = (location.state as LocationState | null)?.from || '/collection';
             navigate(backPath);
-        } catch (err: any) {
-            setError(err.message || 'Ошибка продажи карточки');
+        } catch (err) {
+            const error = err instanceof Error ? err : new Error(String(err));
+            setError(error.message || 'Ошибка продажи карточки');
             postEvent('web_app_trigger_haptic_feedback', {
                 type: 'notification',
                 notification_type: 'error',
@@ -87,7 +92,10 @@ export default function CardDetailPage() {
     };
 
     const handleBack = () => {
-        const backPath = (location.state as any)?.from || '/collection';
+        interface LocationState {
+            from?: string;
+        }
+        const backPath = (location.state as LocationState | null)?.from || '/collection';
         navigate(backPath);
     };
 

@@ -1,17 +1,76 @@
+import { initDataRaw, retrieveRawInitData } from '@telegram-apps/sdk';
+
 export const API_BASE = 'https://api.getgadgets.toolbox-io.ru/api/v1';
 
+interface TelegramWebApp {
+    initData?: string;
+}
+
+interface TelegramWindow {
+    Telegram?: {
+        WebApp?: TelegramWebApp;
+    };
+}
+
 function getInitData(): string {
-    if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.initData) {
-        return (window as any).Telegram.WebApp.initData;
+    try {
+        // Try to get initData from SDK first (initDataRaw is the raw string)
+        const sdkInitData = initDataRaw();
+        if (sdkInitData) {
+            return sdkInitData;
+        }
+    } catch (e) {
+        // SDK might not be initialized yet
     }
+    
+    // Try retrieveRawInitData as fallback
+    try {
+        const rawInitData = retrieveRawInitData();
+        if (rawInitData) {
+            return rawInitData;
+        }
+    } catch (e) {
+        // Not available
+    }
+    
+    // Fallback to window.Telegram.WebApp.initData
+    if (typeof window !== 'undefined') {
+        const telegramWindow = window as unknown as TelegramWindow;
+        if (telegramWindow.Telegram?.WebApp?.initData) {
+            return telegramWindow.Telegram.WebApp.initData;
+        }
+        
+        // Fallback: Extract from URL hash (tgWebAppData parameter)
+        const hash = window.location.hash;
+        if (hash) {
+            const params = new URLSearchParams(hash.substring(1));
+            const tgWebAppData = params.get('tgWebAppData');
+            if (tgWebAppData) {
+                return decodeURIComponent(tgWebAppData);
+            }
+        }
+        
+        // Also try query string (some Telegram clients use this)
+        const searchParams = new URLSearchParams(window.location.search);
+        const queryInitData = searchParams.get('tgWebAppData');
+        if (queryInitData) {
+            return decodeURIComponent(queryInitData);
+        }
+    }
+    
     return '';
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     const initData = getInitData();
+    
+    if (!initData) {
+        throw new Error('initData not available. Make sure the SDK is initialized.');
+    }
+    
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
-        'X-Telegram-InitData': initData,
+        'X-Telegram-Init-Data': initData, // Note: hyphen in header name (matches API expectation)
         ...(options.headers || {})
     };
     
@@ -23,9 +82,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     
     if (!res.ok) {
         const text = await res.text();
-        let error;
+        let error: { detail?: string };
         try {
-            error = JSON.parse(text);
+            error = JSON.parse(text) as { detail?: string };
         } catch {
             error = { detail: text || `HTTP ${res.status}` };
         }
@@ -81,9 +140,20 @@ export interface AvailableParts {
     'Motherboard': Card[];
 }
 
+export interface TelegramUser {
+    id: number;
+    first_name: string;
+    last_name?: string;
+    username?: string;
+    language_code?: string;
+    is_premium?: boolean;
+    allows_write_to_pm?: boolean;
+    photo_url?: string;
+}
+
 export const api = {
     init: (initData: string) => 
-        request<{ user_id: number; user: User; telegram_user: any }>('/auth/init', {
+        request<{ user_id: number; user: User; telegram_user: TelegramUser }>('/auth/init', {
             method: 'POST',
             body: JSON.stringify({ initData }),
         }),

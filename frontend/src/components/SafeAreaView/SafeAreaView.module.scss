@@ -5,7 +5,7 @@
     /* Use CSS custom properties from Telegram SDK viewport component */
     /* These are automatically set by viewport.bindCssVars() and updated on viewport changes */
     /* Fallback to env() CSS variables for browsers that support them */
-    padding-top: var(--tg-viewport-safe-area-inset-top, env(safe-area-inset-top, 0px));
+    padding-top: calc(var(--tg-viewport-safe-area-inset-top, env(safe-area-inset-top, 0px)) + 30px); // header height included
     padding-right: var(--tg-viewport-safe-area-inset-right, env(safe-area-inset-right, 0px));
     padding-bottom: var(--tg-viewport-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
     padding-left: var(--tg-viewport-safe-area-inset-left, env(safe-area-inset-left, 0px));

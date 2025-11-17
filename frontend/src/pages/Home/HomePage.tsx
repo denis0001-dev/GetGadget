@@ -13,15 +13,49 @@ export default function HomePage() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        loadUser();
+        // Wait for SDK initialization before loading user
+        const timer = setTimeout(() => {
+            loadUser();
+        }, 500);
+        
+        return () => clearTimeout(timer);
     }, []);
 
     const loadUser = async () => {
         try {
+            // First initialize the API connection
+            // The api.getUser() will handle getting initData internally
+            // But we should call api.init() first if we have initData
+            
+            // Try to get initData and initialize
+            try {
+                // Extract from URL hash first (most reliable in Telegram)
+                let initData = '';
+                if (typeof window !== 'undefined') {
+                    const hash = window.location.hash;
+                    if (hash) {
+                        const params = new URLSearchParams(hash.substring(1));
+                        const tgWebAppData = params.get('tgWebAppData');
+                        if (tgWebAppData) {
+                            initData = decodeURIComponent(tgWebAppData);
+                        }
+                    }
+                }
+                
+                if (initData) {
+                    await api.init(initData);
+                }
+            } catch (initErr) {
+                console.warn('API init failed (may already be initialized):', initErr);
+            }
+            
+            // Then get user data (api.getUser() will get initData from getInitData() function)
             const data = await api.getUser();
             setCoins(data.user.coins);
-        } catch (err: any) {
-            console.error('Error loading user:', err);
+        } catch (err) {
+            const error = err instanceof Error ? err : new Error(String(err));
+            console.error('Error loading user:', error);
+            setError(error.message || 'Ошибка загрузки данных пользователя');
         }
     };
 
@@ -49,8 +83,9 @@ export default function HomePage() {
                 type: 'notification',
                 notification_type: 'success',
             });
-        } catch (err: any) {
-            setError(err.message || 'Ошибка при получении карточки');
+        } catch (err) {
+            const error = err instanceof Error ? err : new Error(String(err));
+            setError(error.message || 'Ошибка при получении карточки');
             setShowReel(false);
             postEvent('web_app_trigger_haptic_feedback', {
                 type: 'notification',

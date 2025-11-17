@@ -56,8 +56,9 @@ export default function CollectionPage() {
             const data = await api.getCardTypes();
             setTypes(data.types);
             setViewState('types');
-        } catch (err: any) {
-            setError(err.message || 'Ошибка загрузки');
+        } catch (err) {
+            const error = err instanceof Error ? err : new Error(String(err));
+            setError(error.message || 'Ошибка загрузки');
         } finally {
             setLoading(false);
         }
@@ -81,8 +82,9 @@ export default function CollectionPage() {
             const data = await api.getCardsByTypeRarity(selectedType, rarity);
             setCards(data.cards);
             setViewState('cards');
-        } catch (err: any) {
-            setError(err.message || 'Ошибка загрузки карточек');
+        } catch (err) {
+            const error = err instanceof Error ? err : new Error(String(err));
+            setError(error.message || 'Ошибка загрузки карточек');
         } finally {
             setLoading(false);
         }
