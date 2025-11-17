@@ -40,3 +40,6 @@ wheels/
 .DS_Store
 Thumbs.db
 
+# SCSS module type definitions
+*.module.scss.d.ts
+

@@ -3,9 +3,13 @@ Telegram Gadget Card Bot
 Main entry point for the bot application.
 """
 
+import threading
+
+import uvicorn
 from telegram import Update
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler
 
+import api
 import config
 import commands
 import callbacks
@@ -25,8 +29,24 @@ async def initialize_user(application):
         print(f"Initialization error: {e}")
 
 
+def run_api_server():
+    """Run the FastAPI server in a separate thread."""
+    app = api.create_app()
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=8400,
+        log_level="info"
+    )
+
+
 def main():
     """Main function to run the bot."""
+    # Start FastAPI server in a separate thread
+    api_thread = threading.Thread(target=run_api_server, daemon=True)
+    api_thread.start()
+    print("FastAPI server started on port 8400")
+    
     # Create application
     application = Application.builder().token(config.BOT_TOKEN).build()
     
