@@ -38,10 +38,10 @@
     transition: all 0.2s;
 }
 
-.backButton:hover {
-    background: rgba(255, 255, 255, 0.15);
-    color: rgba(255, 255, 255, 1);
-}
+// .backButton:hover {
+//     background: rgba(255, 255, 255, 0.15);
+//     color: rgba(255, 255, 255, 1);
+// }
 
 .content {
     width: 100%;
@@ -106,11 +106,11 @@
     text-align: left;
 }
 
-.partCard:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.1);
-    transform: translateX(4px);
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
-}
+// .partCard:hover:not(:disabled) {
+//     background: rgba(255, 255, 255, 0.1);
+//     transform: translateX(4px);
+//     box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+// }
 
 .partCard:disabled {
     opacity: 0.6;

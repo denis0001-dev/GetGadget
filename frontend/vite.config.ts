@@ -17,7 +17,8 @@ export default defineConfig({
     },
     server: {
         port: 8401,
-        host: true
+        host: true,
+        allowedHosts: ['getgadgets.toolbox-io.ru']
     },
     base: '/',
     publicDir: 'public',

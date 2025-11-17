@@ -69,10 +69,10 @@
     backdrop-filter: blur(10px);
 }
 
-.drawButton:hover:not(:disabled) {
-    transform: scale(1.05);
-    box-shadow: 0 0 40px rgba(0, 255, 255, 0.5);
-}
+// .drawButton:hover:not(:disabled) {
+//     transform: scale(1.05);
+//     box-shadow: 0 0 40px rgba(0, 255, 255, 0.5);
+// }
 
 .drawButton:active:not(:disabled) {
     transform: scale(0.98);
@@ -160,9 +160,9 @@
     transition: all 0.3s;
 }
 
-.drawAgainButton:hover {
-    transform: scale(1.02);
-}
+// .drawAgainButton:hover {
+//     transform: scale(1.02);
+// }
 
 .drawAgainButton:active {
     transform: scale(0.98);

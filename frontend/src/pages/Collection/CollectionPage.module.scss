@@ -38,10 +38,10 @@
     transition: all 0.2s;
 }
 
-.backButton:hover {
-    background: rgba(255, 255, 255, 0.15);
-    color: rgba(255, 255, 255, 1);
-}
+// .backButton:hover {
+//     background: rgba(255, 255, 255, 0.15);
+//     color: rgba(255, 255, 255, 1);
+// }
 
 .content {
     width: 100%;
@@ -73,11 +73,11 @@
     transition: all 0.3s;
 }
 
-.typeCard:hover {
-    background: rgba(255, 255, 255, 0.1);
-    transform: translateX(4px);
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
-}
+// .typeCard:hover {
+//     background: rgba(255, 255, 255, 0.1);
+//     transform: translateX(4px);
+//     box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+// }
 
 .typeName {
     font-size: 18px;
@@ -111,10 +111,10 @@
     text-align: left;
 }
 
-.rarityCard:hover {
-    background: rgba(255, 255, 255, 0.1);
-    transform: translateX(4px);
-}
+// .rarityCard:hover {
+//     background: rgba(255, 255, 255, 0.1);
+//     transform: translateX(4px);
+// }
 
 .rarityEmoji {
     font-size: 24px;
@@ -152,11 +152,11 @@
     text-align: left;
 }
 
-.cardButton:hover {
-    background: rgba(255, 255, 255, 0.1);
-    transform: scale(1.02);
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
-}
+// .cardButton:hover {
+//     background: rgba(255, 255, 255, 0.1);
+//     transform: scale(1.02);
+//     box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+// }
 
 .cardName {
     font-size: 14px;

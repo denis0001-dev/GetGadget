@@ -97,31 +97,29 @@ export default function App() {
     const direction = prevTabIndex >= 0 && currentTabIndex > prevTabIndex ? 1 : -1;
 
     return (
-        <BrowserRouter>
-            <SafeAreaView>
-                <AppBackground />
-                <div className={styles.app}>
-                    <AnimatePresence mode="wait" custom={direction}>
-                        <motion.div
-                            key={currentPath}
-                            custom={direction}
-                            initial={{ opacity: 0, x: direction * 100 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: direction * -100 }}
-                            transition={{ duration: 0.3, ease: 'easeInOut' }}
-                            className={styles.content}
-                        >
-                            <Routes location={location}>
-                                {routes.map(({ path, component: Component }) => (
-                                    <Route key={path} path={path} element={<Component />} />
-                                ))}
-                                <Route path="/collection/card/:cardId" element={<CardDetailPage />} />
-                            </Routes>
-                        </motion.div>
-                    </AnimatePresence>
-                    <BottomNav currentPath={currentPath} />
-                </div>
-            </SafeAreaView>
-        </BrowserRouter>
+        <SafeAreaView>
+            <AppBackground />
+            <div className={styles.app}>
+                <AnimatePresence mode="wait" custom={direction}>
+                    <motion.div
+                        key={currentPath}
+                        custom={direction}
+                        initial={{ opacity: 0, x: direction * 100 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: direction * -100 }}
+                        transition={{ duration: 0.3, ease: 'easeInOut' }}
+                        className={styles.content}
+                    >
+                        <Routes location={location}>
+                            {routes.map(({ path, component: Component }) => (
+                                <Route key={path} path={path} element={<Component />} />
+                            ))}
+                            <Route path="/collection/card/:cardId" element={<CardDetailPage />} />
+                        </Routes>
+                    </motion.div>
+                </AnimatePresence>
+                <BottomNav currentPath={currentPath} />
+            </div>
+        </SafeAreaView>
     );
 }

@@ -28,10 +28,10 @@
     transition: all 0.2s;
 }
 
-.backButton:hover {
-    background: rgba(255, 255, 255, 0.15);
-    color: rgba(255, 255, 255, 1);
-}
+// .backButton:hover {
+//     background: rgba(255, 255, 255, 0.15);
+//     color: rgba(255, 255, 255, 1);
+// }
 
 .cardContent {
     padding: 24px;
@@ -112,10 +112,10 @@
     transition: all 0.3s;
 }
 
-.sellButton:hover:not(:disabled) {
-    transform: scale(1.02);
-    box-shadow: 0 0 30px rgba(255, 0, 0, 0.3);
-}
+// .sellButton:hover:not(:disabled) {
+//     transform: scale(1.02);
+//     box-shadow: 0 0 30px rgba(255, 0, 0, 0.3);
+// }
 
 .sellButton:disabled {
     opacity: 0.6;
