@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
-import { Routes, Route, useLocation, useNavigate, BrowserRouter } from 'react-router-dom';
+import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { postEvent, retrieveLaunchParams } from '@telegram-apps/sdk';
+import { init, postEvent, retrieveLaunchParams, viewport, miniApp } from '@telegram-apps/sdk';
 import SafeAreaView from '@/components/SafeAreaView/SafeAreaView';
 import BottomNav from '@/components/BottomNav/BottomNav';
 import AppBackground from '@/components/AppBackground/AppBackground';
@@ -31,42 +31,115 @@ export default function App() {
         // Initialize Telegram Mini App
         const initTelegramApp = async () => {
             try {
-                // Expand app to fullscreen
+                // Initialize SDK first (required before using any components)
+                await init();
+                console.log('SDK initialized successfully');
+                
+                // Try to expand immediately using postEvent (works in most cases)
                 postEvent('web_app_expand');
-
+                
                 // Set up theme colors
-                const { themeParams } = retrieveLaunchParams();
+                const launchParams = retrieveLaunchParams();
+                const { themeParams } = launchParams;
+                
+                // Mount MiniApp component first (required for other features)
+                await miniApp.mount();
+                
+                // Mount viewport component (required for safe area insets and fullscreen)
+                await viewport.mount();
+                
+                // Expand viewport to fullscreen (edge-to-edge) using SDK
+                console.log('Attempting to expand viewport...');
+                console.log('expand.isAvailable():', viewport.expand.isAvailable());
+                try {
+                    if (viewport.expand.isAvailable()) {
+                        viewport.expand();
+                        console.log('viewport.expand() called successfully');
+                    } else {
+                        console.warn('viewport.expand() not available, using postEvent');
+                        postEvent('web_app_expand');
+                    }
+                } catch (e) {
+                    console.error('Expand failed:', e);
+                    try {
+                        postEvent('web_app_expand');
+                    } catch (postError) {
+                        console.error('postEvent expand also failed:', postError);
+                    }
+                }
+                
+                // Request fullscreen mode
+                console.log('Attempting to request fullscreen...');
+                console.log('requestFullscreen.isAvailable():', viewport.requestFullscreen.isAvailable());
+                try {
+                    if (viewport.requestFullscreen.isAvailable()) {
+                        await viewport.requestFullscreen();
+                        console.log('viewport.requestFullscreen() called successfully');
+                    } else {
+                        console.warn('viewport.requestFullscreen() not available');
+                    }
+                } catch (fullscreenError) {
+                    console.error('Fullscreen request failed:', fullscreenError);
+                }
+                
+                // Try expand again after a short delay (some clients need this)
+                setTimeout(() => {
+                    try {
+                        postEvent('web_app_expand');
+                        console.log('Retry expand after delay');
+                    } catch (e) {
+                        console.warn('Delayed expand failed:', e);
+                    }
+                }, 100);
+                
                 if (themeParams) {
+                    const theme = themeParams as Record<string, string | undefined>;
                     document.documentElement.style.setProperty(
                         '--tg-theme-bg-color',
-                        themeParams.bgColor || '#ffffff'
+                        theme.bgColor || '#ffffff'
                     );
                     document.documentElement.style.setProperty(
                         '--tg-theme-text-color',
-                        themeParams.textColor || '#000000'
+                        theme.textColor || '#000000'
                     );
                     document.documentElement.style.setProperty(
                         '--tg-theme-button-color',
-                        themeParams.buttonColor || '#2481cc'
+                        theme.buttonColor || '#2481cc'
                     );
                     document.documentElement.style.setProperty(
                         '--tg-theme-button-text-color',
-                        themeParams.buttonTextColor || '#ffffff'
+                        theme.buttonTextColor || '#ffffff'
                     );
                     document.documentElement.style.setProperty(
                         '--tg-theme-link-color',
-                        themeParams.linkColor || '#2481cc'
+                        theme.linkColor || '#2481cc'
                     );
                     document.documentElement.style.setProperty(
                         '--tg-theme-secondary-bg-color',
-                        themeParams.secondaryBgColor || '#f1f1f1'
+                        theme.secondaryBgColor || '#f1f1f1'
                     );
                 }
+                
+                // Bind viewport properties to CSS variables
+                // This automatically creates and updates CSS variables:
+                // --tg-viewport-height, --tg-viewport-width, --tg-viewport-stable-height
+                // --tg-viewport-safe-area-inset-top, --tg-viewport-safe-area-inset-bottom, etc.
+                // These are used in SafeAreaView.module.scss
+                viewport.bindCssVars();
+                
+                // Bind MiniApp properties to CSS variables as well
+                miniApp.bindCssVars();
 
                 // Set background color
-                postEvent('web_app_set_background_color', {
-                    color: themeParams?.bgColor || '#ffffff',
-                });
+                if (themeParams) {
+                    const theme = themeParams as Record<string, string | undefined>;
+                    const bgColor = theme.bgColor || '#ffffff';
+                    // Ensure color is in #RRGGBB format
+                    const formattedColor = bgColor.startsWith('#') ? bgColor : `#${bgColor}`;
+                    postEvent('web_app_set_background_color', {
+                        color: formattedColor as `#${string}`,
+                    });
+                }
 
                 // Set header color
                 postEvent('web_app_set_header_color', {

@@ -47,26 +47,17 @@ export default function BottomNav({ currentPath }: BottomNavProps) {
                             className={`${styles.navItem} ${isActive ? styles.active : ''}`}
                             onClick={() => handleNavigate(item.path)}
                         >
+                            <span className={styles.icon}>{item.icon}</span>
+                            <span className={styles.label}>{item.label}</span>
                             {isActive && (
                                 <motion.div
                                     className={styles.activeIndicator}
                                     layoutId="activeIndicator"
                                     transition={{
                                         type: 'spring',
-                                        stiffness: 300,
+                                        stiffness: 400,
                                         damping: 30,
                                     }}
-                                />
-                            )}
-                            <span className={styles.icon}>{item.icon}</span>
-                            <span className={styles.label}>{item.label}</span>
-                            {isActive && (
-                                <motion.div
-                                    className={styles.glow}
-                                    initial={{ opacity: 0, scale: 0.8 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    exit={{ opacity: 0, scale: 0.8 }}
-                                    transition={{ duration: 0.2 }}
                                 />
                             )}
                         </button>

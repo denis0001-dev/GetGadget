@@ -1,11 +1,15 @@
 .safeArea {
     width: 100%;
-    height: 100vh;
-    height: 100dvh;
-    padding-top: env(safe-area-inset-top);
-    padding-right: env(safe-area-inset-right);
-    padding-bottom: env(safe-area-inset-bottom);
-    padding-left: env(safe-area-inset-left);
+    min-height: 100vh;
+    min-height: 100dvh;
+    /* Use CSS custom properties from Telegram SDK viewport component */
+    /* These are automatically set by viewport.bindCssVars() and updated on viewport changes */
+    /* Fallback to env() CSS variables for browsers that support them */
+    padding-top: var(--tg-viewport-safe-area-inset-top, env(safe-area-inset-top, 0px));
+    padding-right: var(--tg-viewport-safe-area-inset-right, env(safe-area-inset-right, 0px));
+    padding-bottom: var(--tg-viewport-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+    padding-left: var(--tg-viewport-safe-area-inset-left, env(safe-area-inset-left, 0px));
     overflow: hidden;
     position: relative;
+    box-sizing: border-box;
 }

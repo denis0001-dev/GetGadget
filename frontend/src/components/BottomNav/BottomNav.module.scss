@@ -4,10 +4,11 @@
     left: 0;
     right: 0;
     z-index: 1000;
-    padding-bottom: env(safe-area-inset-bottom);
-    background: rgba(26, 26, 46, 0.95);
-    backdrop-filter: blur(20px);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: var(--tg-viewport-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+    background: rgba(26, 26, 46, 0.98);
+    backdrop-filter: blur(30px);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.3);
 }
 
 .navContent {
@@ -24,30 +25,41 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 8px 12px;
+    padding: 10px 12px 8px;
     background: transparent;
     border: none;
     cursor: pointer;
-    color: rgba(255, 255, 255, 0.6);
-    transition: color 0.2s;
+    color: rgba(255, 255, 255, 0.5);
+    transition: all 0.2s ease;
     flex: 1;
     min-width: 0;
-    overflow: hidden;
+    overflow: visible;
+    border-radius: 12px 12px 0 0;
 }
 
 .navItem:active {
-    transform: scale(0.95);
+    transform: scale(0.96);
 }
 
 .navItem.active {
     color: rgba(255, 255, 255, 1);
 }
 
+.navItem:hover:not(.active) {
+    color: rgba(255, 255, 255, 0.75);
+    background: rgba(255, 255, 255, 0.05);
+}
+
 .icon {
-    font-size: 20px;
+    font-size: 22px;
     margin-bottom: 4px;
     position: relative;
     z-index: 1;
+    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', emoji;
+    font-variant-emoji: emoji;
+    text-rendering: optimizeLegibility;
+    -webkit-font-feature-settings: "liga", "kern";
+    font-feature-settings: "liga", "kern";
 }
 
 .label {
@@ -62,32 +74,13 @@
 
 .activeIndicator {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: rgba(0, 255, 255, 0.2);
-    backdrop-filter: blur(10px);
-    border: 2px solid rgba(0, 255, 255, 0.4);
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
-}
-
-.glow {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 70px;
-    height: 70px;
-    border-radius: 50%;
-    background: radial-gradient(
-        circle,
-        rgba(0, 255, 255, 0.3) 0%,
-        transparent 70%
-    );
-    pointer-events: none;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, rgba(0, 255, 255, 0.8), rgba(255, 0, 255, 0.8));
+    border-radius: 3px 3px 0 0;
+    box-shadow: 0 -2px 10px rgba(0, 255, 255, 0.5);
 }
 
 
