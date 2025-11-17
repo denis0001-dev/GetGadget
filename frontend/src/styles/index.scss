@@ -37,14 +37,6 @@ body {
     -moz-osx-font-smoothing: grayscale;
     background: var(--bg-gradient-start);
     color: var(--tg-theme-text-color);
-    font-variant-emoji: emoji;
-}
-
-/* Better emoji rendering */
-* {
-    font-variant-emoji: emoji;
-    -webkit-font-feature-settings: "liga", "kern";
-    font-feature-settings: "liga", "kern";
 }
 
 #root {
