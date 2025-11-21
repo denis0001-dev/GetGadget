@@ -10,6 +10,7 @@ from typing import Dict, List, Optional
 DATA_DIR = "data"
 USERS_FILE = os.path.join(DATA_DIR, "users.json")
 CARDS_FILE = os.path.join(DATA_DIR, "cards.json")
+BANNED_USERS_FILE = os.path.join(DATA_DIR, "banned_users.json")
 
 
 def ensure_data_dir():
@@ -197,4 +198,71 @@ def user_has_gadget(user_id: int, gadget_name: str) -> bool:
         if card["gadget_name"] == gadget_name:
             return True
     return False
+
+
+def ban_user(user_id: int):
+    """Ban a user by removing all their data from the database."""
+    user_id_str = str(user_id)
+    
+    # Remove user from users.json
+    users = load_users()
+    if user_id_str in users:
+        del users[user_id_str]
+        save_users(users)
+        print(f"   ✅ Removed user {user_id} from users database")
+    
+    # Remove all cards from cards.json
+    cards = load_cards()
+    if user_id_str in cards:
+        card_count = len(cards[user_id_str])
+        del cards[user_id_str]
+        save_cards(cards)
+        print(f"   ✅ Removed {card_count} cards for user {user_id}")
+    
+    return True
+
+
+def clear_user_data(user_id: int):
+    """Clear all data for a user (alias for ban_user)."""
+    return ban_user(user_id)
+
+
+def load_banned_users() -> Dict:
+    """Load banned users data from JSON file."""
+    ensure_data_dir()
+    if not os.path.exists(BANNED_USERS_FILE):
+        return {}
+    try:
+        with open(BANNED_USERS_FILE, 'r') as f:
+            return json.load(f)
+    except (json.JSONDecodeError, IOError):
+        return {}
+
+
+def save_banned_users(banned_users: Dict):
+    """Save banned users data to JSON file."""
+    ensure_data_dir()
+    with open(BANNED_USERS_FILE, 'w') as f:
+        json.dump(banned_users, f, indent=2)
+
+
+def is_user_banned(user_id: int) -> bool:
+    """Check if a user is banned."""
+    banned_users = load_banned_users()
+    user_id_str = str(user_id)
+    return user_id_str in banned_users
+
+
+def add_banned_user(user_id: int, username: str = None, reason: str = "Banned by admin"):
+    """Add a user to the banned list."""
+    banned_users = load_banned_users()
+    user_id_str = str(user_id)
+    
+    banned_users[user_id_str] = {
+        "user_id": user_id,
+        "username": username,
+        "reason": reason,
+        "banned_at": time.time()
+    }
+    save_banned_users(banned_users)
 

@@ -121,7 +121,13 @@ def get_user_from_request(request: Request) -> Optional[int]:
     if not user_data:
         return None
     
-    return user_data.get("id")
+    user_id = user_data.get("id")
+    
+    # Check if user is banned
+    if user_id and database.is_user_banned(user_id):
+        raise HTTPException(status_code=403, detail="User is banned")
+    
+    return user_id
 
 
 # Create FastAPI app
@@ -156,6 +162,10 @@ async def init_auth(request: InitDataRequest):
     user_id = user_data.get("id")
     if not user_id:
         raise HTTPException(status_code=400, detail="Missing user ID")
+    
+    # Check if user is banned
+    if database.is_user_banned(user_id):
+        raise HTTPException(status_code=403, detail="User is banned")
     
     # Initialize/update user in database
     db_user = database.get_user(user_id)

@@ -22,6 +22,11 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = query.data
     user_id = query.from_user.id
     
+    # Check if user is banned
+    if database.is_user_banned(user_id):
+        await query.answer("🚫 Вы заблокированы и не можете использовать этого бота.", show_alert=True)
+        return
+    
     # Log all callbacks for debugging
     print(f"[DEBUG] Received callback: data='{data}', user_id={user_id}, length={len(data.encode('utf-8'))} bytes")
     

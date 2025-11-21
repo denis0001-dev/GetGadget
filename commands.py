@@ -17,6 +17,12 @@ from config import RARITY_NAMES, RARITY_ORDER, GADGET_TYPE_GROUPS, GADGET_TYPE_O
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /start command."""
     user_id = update.effective_user.id
+    
+    # Check if user is banned
+    if database.is_user_banned(user_id):
+        await update.message.reply_text("🚫 Вы заблокированы и не можете использовать этого бота.")
+        return
+    
     username = update.effective_user.username
     
     # Grant initial gadgets to @denis0001-dev if this is first time
@@ -44,6 +50,12 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def card_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /card command."""
     user_id = update.effective_user.id
+    
+    # Check if user is banned
+    if database.is_user_banned(user_id):
+        await update.message.reply_text("🚫 Вы заблокированы и не можете использовать этого бота.")
+        return
+    
     user = database.get_user(user_id)
     
     # Cooldown check (commented out for testing as requested)
@@ -94,6 +106,13 @@ async def card_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def gadgets_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /gadgets command."""
+    user_id = update.effective_user.id
+    
+    # Check if user is banned
+    if database.is_user_banned(user_id):
+        await update.message.reply_text("🚫 Вы заблокированы и не можете использовать этого бота.")
+        return
+    
     await show_gadgets(update, context)
 
 
@@ -107,6 +126,14 @@ async def show_gadgets(update: Update, context: ContextTypes.DEFAULT_TYPE, query
     else:
         user_id = update.effective_user.id
         message_obj = update.message
+    
+    # Check if user is banned
+    if database.is_user_banned(user_id):
+        if query:
+            await query.answer("🚫 Вы заблокированы и не можете использовать этого бота.", show_alert=True)
+        else:
+            await message_obj.reply_text("🚫 Вы заблокированы и не можете использовать этого бота.")
+        return
     
     cards = database.get_user_cards(user_id)
     
@@ -285,6 +312,12 @@ async def show_gadget_type_rarity_cards(update: Update, context: ContextTypes.DE
 async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /profile command."""
     user_id = update.effective_user.id
+    
+    # Check if user is banned
+    if database.is_user_banned(user_id):
+        await update.message.reply_text("🚫 Вы заблокированы и не можете использовать этого бота.")
+        return
+    
     message = messages.get_profile_message(user_id)
     
     keyboard = [
@@ -297,6 +330,13 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /help command."""
+    user_id = update.effective_user.id
+    
+    # Check if user is banned
+    if database.is_user_banned(user_id):
+        await update.message.reply_text("🚫 Вы заблокированы и не можете использовать этого бота.")
+        return
+    
     message = messages.get_help_message()
     
     keyboard = [[InlineKeyboardButton("Назад ↩️", callback_data="back_to_start")]]
@@ -307,6 +347,13 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def build_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /build command."""
+    user_id = update.effective_user.id
+    
+    # Check if user is banned
+    if database.is_user_banned(user_id):
+        await update.message.reply_text("🚫 Вы заблокированы и не можете использовать этого бота.")
+        return
+    
     await show_build_menu(update, context)
 
 
@@ -318,6 +365,14 @@ async def show_build_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
     else:
         user_id = update.effective_user.id
         message_obj = update.message
+    
+    # Check if user is banned
+    if database.is_user_banned(user_id):
+        if query:
+            await query.answer("🚫 Вы заблокированы и не можете использовать этого бота.", show_alert=True)
+        else:
+            await message_obj.reply_text("🚫 Вы заблокированы и не можете использовать этого бота.")
+        return
     
     parts = database.get_available_pc_parts(user_id)
     
