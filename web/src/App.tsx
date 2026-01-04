@@ -45,7 +45,7 @@ export default function App() {
 
   return (
     <div className="app-root" style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
-      <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+      <div style={{ flex: 1, position: "relative", overflow: "auto", minHeight: 0 }}>
         <AnimatePresence mode="popLayout" initial={false}>
           {active === "get" && (
             <motion.div key="get" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>

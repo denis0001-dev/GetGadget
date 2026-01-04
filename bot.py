@@ -54,7 +54,7 @@ def main():
         print("Started integrated web API on 0.0.0.0:8400")
     except Exception as e:
         print(f"Warning: Failed to start integrated web API: {e}")
-
+    
     # Run bot
     print("Bot is running...")
     application.run_polling(allowed_updates=Update.ALL_TYPES)
