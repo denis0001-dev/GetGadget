@@ -1,0 +1,49 @@
+.container {
+  padding: 12px;
+  backdrop-filter: blur(10px) saturate(120%);
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.inner {
+  display: flex;
+  gap: 8px;
+  position: relative;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 6px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.02);
+}
+.tab {
+  position: relative;
+  background: transparent;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 999px;
+  color: #fff;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.icon {
+  font-size: 18px;
+}
+.label {
+  text-transform: capitalize;
+  font-size: 14px;
+}
+.pill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+  box-shadow: 0 6px 18px rgba(15,20,30,0.4);
+  z-index: -1;
+}
+
+

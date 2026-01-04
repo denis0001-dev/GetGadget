@@ -9,6 +9,7 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler
 import config
 import commands
 import callbacks
+import bot_api
 
 
 async def initialize_user(application):
@@ -47,6 +48,13 @@ def main():
     
     application.post_init = post_init
     
+    # Start integrated web API (dev): binds to localhost and allows the dev frontend origin
+    try:
+        bot_api.start_web_api(dev_cors_origins=["http://localhost:5173"])
+        print("Started integrated web API on localhost:8000")
+    except Exception as e:
+        print(f"Warning: Failed to start integrated web API: {e}")
+
     # Run bot
     print("Bot is running...")
     application.run_polling(allowed_updates=Update.ALL_TYPES)
