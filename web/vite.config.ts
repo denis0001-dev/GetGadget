@@ -6,9 +6,7 @@ import sassDts from 'vite-plugin-sass-dts'
 export default defineConfig({
     plugins: [
         // Generate .d.ts files for SCSS modules
-        sassDts({
-            
-        }),
+        sassDts(),
         react()
     ],
     resolve: {
@@ -18,6 +16,7 @@ export default defineConfig({
     },
     server: {
         port: 8401,
-        host: true
+        host: true,
+        allowedHosts: ["getgadgets.toolbox-io.ru"]
     }
 })

@@ -149,7 +149,7 @@ def api_get_card(user: Dict = Depends(get_current_telegram_user)):
     return {"id": card_id, "name": gadget["name"], "rarity": gadget.get("rarity", "Common")}
 
 
-def start_web_api(host: str = "127.0.0.1", port: int = 8400, dev_cors_origins: Optional[list] = None):
+def start_web_api(host: str = "0.0.0.0", port: int = 8400, dev_cors_origins: Optional[list] = None):
     """
     Start the FastAPI app in a background daemon thread. Allows the main bot process to keep running.
     """

@@ -1,6 +1,6 @@
 import { getInitDataHeader } from "../lib/telegram"
 
-const BASE = "http://localhost:8000"
+const BASE = "https://api.getgadgets.toolbox-io.ru"
 
 export async function fetchCatalog(): Promise<Array<{ name: string; rarity: string }>> {
   const headers = { ...getInitDataHeader() }
