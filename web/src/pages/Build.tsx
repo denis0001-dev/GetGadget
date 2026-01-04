@@ -1,12 +1,9 @@
-import React from "react"
+import TabContent from "../components/TabContent/TabContent"
 
 export default function BuildPage() {
-  return (
-    <div style={{ padding: 20 }}>
-      <h2 style={{ color: "#fff" }}>Build (placeholder)</h2>
-      <p style={{ color: "#cbd5e1" }}>This is a placeholder for the PC builder.</p>
-    </div>
-  )
+    return (
+        <TabContent title="Build">
+            This is a placeholder for the PC builder.
+        </TabContent>
+    )
 }
-
-

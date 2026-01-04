@@ -1,39 +1,55 @@
 .container {
-  padding: 12px;
-  backdrop-filter: blur(10px) saturate(120%);
-  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-  border-top: 1px solid rgba(255,255,255,0.06);
+  padding: 6px 12px;
+  position: sticky;
+  bottom: var(--tg-safe-area-inset-bottom, 0px);
+  z-index: 100;
+  overflow: hidden;
 }
+
 .inner {
   display: flex;
-  gap: 8px;
+  gap: 2px;
   position: relative;
-  max-width: 720px;
+  width: 100%;
+  max-width: 400px;
   margin: 0 auto;
-  padding: 6px;
+  padding: 3px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.02);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
 }
+
 .tab {
   position: relative;
   background: transparent;
   border: none;
-  padding: 10px 16px;
+  padding: 8px 4px;
   border-radius: 999px;
   color: #fff;
   font-weight: 600;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 2px;
   cursor: pointer;
+  flex: 1;
+  min-height: 45px;
 }
+
 .icon {
-  font-size: 18px;
+  font-size: 20px;
+  line-height: 1;
+  margin-bottom: 5px;
 }
+
 .label {
   text-transform: capitalize;
-  font-size: 14px;
+  font-size: 10px;
+  line-height: 1;
+  text-align: center;
 }
+
 .pill {
   position: absolute;
   left: 0;
@@ -45,6 +61,3 @@
   box-shadow: 0 6px 18px rgba(15,20,30,0.4);
   z-index: -1;
 }
-
-
-
