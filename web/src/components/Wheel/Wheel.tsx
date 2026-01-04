@@ -16,7 +16,10 @@ const RARITY_COLORS: Record<string, string> = {
   Mythic: "#ef4444"
 }
 
-export default function Wheel(): JSX.Element {
+// Number of full wheel rotations during spin (must be >= animation cycles)
+const CYCLES = 6
+
+export default function Wheel() {
   const [items, setItems] = useState<Item[]>([])
   const [isSpinning, setIsSpinning] = useState(false)
   const listRef = useRef<HTMLDivElement | null>(null)
@@ -33,6 +36,7 @@ export default function Wheel(): JSX.Element {
         setItems(sampled)
       })
       .catch(() => {
+        if (!mounted) return
         // fallback to a few placeholders
         setItems([
           { name: "Placeholder A", rarity: "Common" },
@@ -145,7 +149,7 @@ export default function Wheel(): JSX.Element {
             Render a long repeated list deterministically so measurements are exact.
             We render cycles*items.length + a buffer to allow the animation to land precisely.
           */}
-          {Array.from({ length: Math.max(1, items.length * cycles + items.length) }).map((_, i) => {
+          {Array.from({ length: Math.max(1, items.length * CYCLES + items.length) }).map((_, i) => {
             const it = items[i % items.length] ?? { name: `...`, rarity: "Common" }
             return (
               <div

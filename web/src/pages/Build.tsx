@@ -1,6 +1,6 @@
 import React from "react"
 
-export default function BuildPage(): JSX.Element {
+export default function BuildPage() {
   return (
     <div style={{ padding: 20 }}>
       <h2 style={{ color: "#fff" }}>Build (placeholder)</h2>

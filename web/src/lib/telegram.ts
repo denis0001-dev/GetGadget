@@ -15,6 +15,7 @@ declare global {
         initData?: string
         initDataUnsafe?: any
         isExpanded?: boolean
+        ready?: () => void
         expand?: () => void
         getSafeAreaInsets?: () => { top?: number; bottom?: number; left?: number; right?: number }
         HapticFeedback?: {
@@ -27,7 +28,45 @@ declare global {
 }
 
 export function requireTelegram(): boolean {
+  return Boolean(window.Telegram && window.Telegram.WebApp)
+}
+
+export function isTelegramReady(): boolean {
   return Boolean(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData)
+}
+
+export function initializeTelegramWebApp(): Promise<void> {
+  return new Promise((resolve) => {
+    if (!requireTelegram()) {
+      resolve() // Not in Telegram, resolve immediately
+      return
+    }
+
+    // Call ready() if available
+    try {
+      if (window.Telegram?.WebApp?.ready) {
+        window.Telegram.WebApp.ready()
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    // Check if initData is already available
+    if (isTelegramReady()) {
+      resolve()
+      return
+    }
+
+    // Wait for initData to become available
+    const checkReady = () => {
+      if (isTelegramReady()) {
+        resolve()
+      } else {
+        setTimeout(checkReady, 100)
+      }
+    }
+    checkReady()
+  })
 }
 
 export function getInitData(): string | null {

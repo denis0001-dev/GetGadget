@@ -1,6 +1,6 @@
 import React from "react"
 
-export default function ProfilePage(): JSX.Element {
+export default function ProfilePage() {
   return (
     <div style={{ padding: 20 }}>
       <h2 style={{ color: "#fff" }}>Profile (placeholder)</h2>

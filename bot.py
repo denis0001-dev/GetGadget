@@ -48,10 +48,10 @@ def main():
     
     application.post_init = post_init
     
-    # Start integrated web API (dev): binds to localhost and allows the dev frontend origin
+    # Start integrated web API: binds to all interfaces and allows both dev and production origins
     try:
         bot_api.start_web_api(dev_cors_origins=["http://localhost:5173"])
-        print("Started integrated web API on localhost:8000")
+        print("Started integrated web API on 0.0.0.0:8400")
     except Exception as e:
         print(f"Warning: Failed to start integrated web API: {e}")
 

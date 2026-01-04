@@ -153,16 +153,20 @@ def start_web_api(host: str = "0.0.0.0", port: int = 8400, dev_cors_origins: Opt
     """
     Start the FastAPI app in a background daemon thread. Allows the main bot process to keep running.
     """
-    # Configure CORS for dev if provided
-    origins = dev_cors_origins or []
-    if origins:
-        app.add_middleware(
-            CORSMiddleware,
-            allow_origins=origins,
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
-        )
+    # Configure CORS - allow production frontend and dev origins
+    origins = [
+        "https://getgadgets.toolbox-io.ru",  # Production frontend
+    ]
+    if dev_cors_origins:
+        origins.extend(dev_cors_origins)
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     def run():
         import uvicorn

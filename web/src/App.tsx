@@ -5,7 +5,7 @@ import GetPage from "./pages/Get"
 import BuildPage from "./pages/Build"
 import CollectionPage from "./pages/Collection"
 import ProfilePage from "./pages/Profile"
-import { requireTelegram, expandIfAvailable, applySafeAreaInsets } from "./lib/telegram"
+import { requireTelegram, initializeTelegramWebApp, isTelegramReady, expandIfAvailable, applySafeAreaInsets } from "./lib/telegram"
 
 const tabs = ["get", "build", "collection", "profile"]
 type Tab = typeof tabs[number]
@@ -25,9 +25,20 @@ export default function App() {
       return
     }
 
-    expandIfAvailable()
-    applySafeAreaInsets()
-    setMounted(true)
+    // Initialize Telegram WebApp and wait for it to be ready
+    initializeTelegramWebApp().then(() => {
+      if (!isTelegramReady()) {
+        const root = document.getElementById("root")
+        if (root) {
+          root.innerHTML = "<div style='padding:20px;font-family:Arial'>Failed to initialize Telegram WebApp. Please refresh the page.</div>"
+        }
+        return
+      }
+
+      expandIfAvailable()
+      applySafeAreaInsets()
+      setMounted(true)
+    })
   }, [])
 
   if (!mounted) return null
