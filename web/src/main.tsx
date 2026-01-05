@@ -3,3 +3,4 @@ import App from "./App"
 import "./styles/global.module.scss"
 
 createRoot(document.getElementById("root")!!).render(<App />)
+

@@ -2,49 +2,42 @@ import React, { useEffect, useState } from "react"
 import styles from "./ActionButton.module.scss"
 
 interface ActionButtonProps {
-  onClick: () => void
-  disabled?: boolean
-  children: React.ReactNode
+    onClick: () => void
+    disabled?: boolean
+    children: React.ReactNode
 }
 
 export default function ActionButton({ onClick, disabled = false, children }: ActionButtonProps) {
-  const [tabBarTop, setTabBarTop] = useState(window.innerHeight - 80)
+    const [tabBarHeight, setTabBarHeight] = useState(80)
 
-  // Measure TabBar position dynamically
-  useEffect(() => {
-    const tabBar = document.querySelector('[class*="TabBar_container"]') as HTMLElement
-    if (!tabBar) return
+    // Measure TabBar height dynamically
+    useEffect(() => {
+        const tabBar = document.querySelector('[class*="TabBar_container"]') as HTMLElement
+        if (!tabBar) return
 
-    const updatePosition = () => {
-      const rect = tabBar.getBoundingClientRect()
-      setTabBarTop(rect.top)
-    }
+        const updateHeight = () => {
+            setTabBarHeight(tabBar.offsetHeight)
+        }
 
-    // Initial measurement
-    updatePosition()
+        // Initial measurement
+        updateHeight()
 
-    // Set up ResizeObserver for size changes
-    const resizeObserver = new ResizeObserver(updatePosition)
-    resizeObserver.observe(tabBar)
+        // Set up ResizeObserver for size changes
+        const resizeObserver = new ResizeObserver(updateHeight)
+        resizeObserver.observe(tabBar)
 
-    // Also listen for scroll events to update position
-    const handleScroll = () => updatePosition()
-    window.addEventListener('scroll', handleScroll)
+        return () => {
+            resizeObserver.disconnect()
+        }
+    }, [])
 
-    return () => {
-      resizeObserver.disconnect()
-      window.removeEventListener('scroll', handleScroll)
-    }
-  }, [])
-
-  return (
-    <button
-      className={styles.button}
-      style={{ top: `${tabBarTop - 100}px` }}
-      onClick={onClick}
-      disabled={disabled}
-    >
-      {children}
-    </button>
-  )
+    return (
+        <button
+            className={styles.button}
+            style={{ bottom: `${tabBarHeight}px` }}
+            onClick={onClick}
+            disabled={disabled}>
+        {children}
+        </button>
+    )
 }

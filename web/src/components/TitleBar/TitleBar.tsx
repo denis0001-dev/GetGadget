@@ -12,3 +12,4 @@ export default function TitleBar({ children }: TitleBarProps) {
     </div>
   )
 }
+

@@ -188,7 +188,7 @@ export default function Wheel() {
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.8 }}
                         style={{
-                        borderColor: RARITY_COLORS[selectedItem.rarity] || '#667'
+                            borderColor: RARITY_COLORS[selectedItem.rarity] || '#667'
                         }}
                     >
                         <h3>You got:</h3>
