@@ -1,21 +1,21 @@
 .container {
-  position: sticky;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 100;
-  background: rgba(0, 0, 0, 0.3);
-  padding-top: calc(var(--tg-safe-area-inset-top, 0px) + 40px + 10px);
-  padding-bottom: 10px;
-  backdrop-filter: blur(10px);
-}
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: rgba(0, 0, 0, 0.3);
+    padding-top: calc(var(--tg-safe-area-inset-top, 0px) + 40px + 10px);
+    padding-bottom: 10px;
+    backdrop-filter: blur(10px);
 
-.title {
-  color: #fff;
-  margin-left: 20px;
-  margin-right: 20px;
-  margin-block: 0;
-  font-size: 24px;
-  font-weight: bold;
+    .title {
+        color: #fff;
+        margin-left: 20px;
+        margin-right: 20px;
+        margin-block: 0;
+        font-size: 24px;
+        font-weight: bold;
+    }
 }
 
